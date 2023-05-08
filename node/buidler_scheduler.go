@@ -7,6 +7,7 @@ import (
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/lib/etcdcli"
+	"github.com/Filecoin-Titan/titan/lib/lotuscli"
 	"github.com/Filecoin-Titan/titan/node/config"
 	"github.com/Filecoin-Titan/titan/node/modules"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
@@ -62,6 +63,7 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(*etcdcli.Client), modules.RegisterToEtcd),
 		Override(new(*leadership.Manager), leadership.NewManager),
 		Override(new(*recordfile.Manager), recordfile.NewManager),
+		Override(new(*lotuscli.Client), lotuscli.New),
 		Override(new(*sqlx.DB), modules.NewDB),
 		Override(new(*db.SQLDB), db.NewSQLDB),
 		Override(new(*pubsub.PubSub), modules.NewPubSub),

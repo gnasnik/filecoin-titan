@@ -2,9 +2,12 @@ package lotuscli
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	jsonrpc "github.com/filecoin-project/go-jsonrpc"
+	"github.com/filecoin-project/go-state-types/abi"
+	"github.com/filecoin-project/go-state-types/crypto"
 	lotusapi "github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/chain/types"
 )
@@ -15,7 +18,10 @@ type Client struct {
 }
 
 // New new a lotus client
-func New(lotusAddress, authToken string) (*Client, error) {
+func New() (*Client, error) {
+	lotusAddress := "api.node.glif.io"
+	authToken := ""
+
 	headers := http.Header{"Authorization": []string{"Bearer " + authToken}}
 	url := "http://" + lotusAddress + "/rpc/v0"
 	var api lotusapi.FullNodeStruct
@@ -31,8 +37,14 @@ func New(lotusAddress, authToken string) (*Client, error) {
 	return client, nil
 }
 
-// ChainHead get head
-func (c *Client) ChainHead() (*types.TipSet, error) {
-	// Now you can call any API you're interested in.
-	return c.cli.ChainHead(context.Background())
+// StateGetRandomnessFromBeacon get randomness
+func (c *Client) StateGetRandomnessFromBeacon() (abi.Randomness, error) {
+	ts, err := c.cli.ChainHead(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("height:", ts.Height())
+
+	return c.cli.StateGetRandomnessFromBeacon(context.Background(), crypto.DomainSeparationTag_WindowedPoStChallengeSeed, ts.Height(), nil, types.NewTipSetKey())
 }

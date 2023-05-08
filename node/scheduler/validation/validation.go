@@ -3,6 +3,7 @@ package validation
 import (
 	"context"
 	"database/sql"
+	"encoding/binary"
 	"math/rand"
 	"time"
 
@@ -77,6 +78,14 @@ func (m *Manager) startValidate() error {
 		}
 	}
 
+	randomByte, err := m.lotus.StateGetRandomnessFromBeacon()
+	if err != nil {
+		log.Errorf("StateGetRandomnessFromBeacon err:%s", err.Error())
+	} else {
+		log.Infoln(randomByte)
+		log.Infof("to int %d", binary.LittleEndian.Uint64(randomByte))
+	}
+
 	roundID := uuid.NewString()
 	m.curRoundID = roundID
 	m.seed = time.Now().UnixNano() // TODO from filecoin
@@ -88,7 +97,7 @@ func (m *Manager) startValidate() error {
 		return nil
 	}
 
-	err := m.nodeMgr.SaveValidationResultInfos(dbInfos)
+	err = m.nodeMgr.SaveValidationResultInfos(dbInfos)
 	if err != nil {
 		return err
 	}

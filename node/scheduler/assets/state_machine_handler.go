@@ -3,6 +3,7 @@ package assets
 import (
 	"time"
 
+	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/filecoin-project/go-statemachine"
 	"golang.org/x/xerrors"
 )
@@ -66,7 +67,7 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 		}
 	}()
 
-	return ctx.Send(PullRequestSent{})
+	return ctx.Send(PullRequestSent{CandidateWaitings: int64(len(nodes))})
 }
 
 // handleSeedPulling handles the asset pulling process of seed nodes
@@ -77,7 +78,7 @@ func (m *Manager) handleSeedPulling(ctx statemachine.Context, info AssetPullingI
 		return ctx.Send(PullSucceed{})
 	}
 
-	if len(info.CandidateReplicaSucceeds)+len(info.CandidateReplicaFailures) >= seedReplicaCount {
+	if info.CandidateWaitings == 0 {
 		return ctx.Send(PullFailed{error: xerrors.New("node pull failed")})
 	}
 
@@ -123,7 +124,7 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 		}
 	}()
 
-	return ctx.Send(PullRequestSent{})
+	return ctx.Send(PullRequestSent{CandidateWaitings: int64(len(nodes))})
 }
 
 // handleCandidatesPulling handles the asset pulling process of candidate nodes
@@ -134,16 +135,27 @@ func (m *Manager) handleCandidatesPulling(ctx statemachine.Context, info AssetPu
 		return ctx.Send(PullSucceed{})
 	}
 
-	if int64(len(info.CandidateReplicaSucceeds)+len(info.CandidateReplicaFailures)) >= info.CandidateReplicas {
+	if info.CandidateWaitings == 0 {
 		return ctx.Send(PullFailed{error: xerrors.New("node pull failed")})
 	}
 
 	return nil
 }
 
+func (m *Manager) getCurBandwidthDown(nodes []string) int64 {
+	bandwidthDown := int64(0)
+	for _, nodeID := range nodes {
+		node := m.nodeMgr.GetEdgeNode(nodeID)
+		if node != nil {
+			bandwidthDown += int64(node.BandwidthDown)
+		}
+	}
+	return bandwidthDown
+}
+
 // handleEdgesSelect handles the selection of edge nodes for asset pull
 func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingInfo) error {
-	log.Debugf("handle edges select , %s , %d", info.CID, info.ReplenishReplicas)
+	log.Debugf("handle edges select , %s", info.CID)
 
 	needCount := info.EdgeReplicas - int64(len(info.EdgeReplicaSucceeds))
 
@@ -152,8 +164,10 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 		needCount = info.ReplenishReplicas
 	}
 
-	if needCount < 1 {
-		// The number of edge node replicas has reached the requirement
+	needBandwidthDown := info.BandwidthDown - m.getCurBandwidthDown(info.EdgeReplicaSucceeds)
+
+	if needCount < 1 && needBandwidthDown <= 0 {
+		// The number of edge node replications and the total downlink bandwidth are met
 		return ctx.Send(SkipStep{})
 	}
 
@@ -163,7 +177,7 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 	}
 
 	// find nodes
-	nodes, str := m.chooseEdgeNodesForAssetReplica(int(needCount), info.EdgeReplicaSucceeds)
+	nodes, str := m.chooseEdgeNodesForAssetReplica(int(needCount), needBandwidthDown, info.EdgeReplicaSucceeds)
 	if len(nodes) < 1 {
 		return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found %s", str)})
 	}
@@ -189,17 +203,20 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 		}
 	}()
 
-	return ctx.Send(PullRequestSent{})
+	return ctx.Send(PullRequestSent{EdgeWaitings: int64(len(nodes))})
 }
 
 // handleEdgesPulling handles the asset pulling process of edge nodes
 func (m *Manager) handleEdgesPulling(ctx statemachine.Context, info AssetPullingInfo) error {
 	log.Debugf("handle edges pulling, %s", info.CID)
-	if int64(len(info.EdgeReplicaSucceeds)) >= info.EdgeReplicas {
+
+	needBandwidthDown := info.BandwidthDown - m.getCurBandwidthDown(info.EdgeReplicaSucceeds)
+
+	if int64(len(info.EdgeReplicaSucceeds)) >= info.EdgeReplicas && needBandwidthDown <= 0 {
 		return ctx.Send(PullSucceed{})
 	}
 
-	if int64(len(info.EdgeReplicaSucceeds)+len(info.EdgeReplicaFailures)) >= info.EdgeReplicas {
+	if info.EdgeWaitings == 0 {
 		return ctx.Send(PullFailed{error: xerrors.New("node pull failed")})
 	}
 
@@ -231,4 +248,33 @@ func (m *Manager) handlePullsFailed(ctx statemachine.Context, info AssetPullingI
 	}
 
 	return ctx.Send(AssetRePull{})
+}
+
+func (m *Manager) handleRemove(ctx statemachine.Context, info AssetPullingInfo) error {
+	log.Infof("handle remove: %s", info.CID)
+
+	hash := info.Hash.String()
+	cid := info.CID
+
+	cInfos, err := m.LoadAssetReplicas(hash)
+	if err != nil {
+		return xerrors.Errorf("RemoveAsset %s LoadAssetReplicas err:%s", info.CID, err.Error())
+	}
+
+	err = m.DeleteAssetRecord(hash, m.nodeMgr.ServerID, &types.AssetEventInfo{Hash: hash, Event: types.AssetEventRemove}, Remove.String())
+	if err != nil {
+		return xerrors.Errorf("RemoveAsset %s DeleteAssetRecord err: %s", hash, err.Error())
+	}
+
+	for _, cInfo := range cInfos {
+		// asset view
+		err = m.removeAssetFromView(cInfo.NodeID, cid)
+		if err != nil {
+			log.Errorf("RemoveAsset %s removeAssetFromView err:%s", cInfo.NodeID, err.Error())
+		}
+
+		go m.requestAssetDelete(cInfo.NodeID, cid)
+	}
+
+	return nil
 }

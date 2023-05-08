@@ -44,6 +44,7 @@ type AssetRecord struct {
 	NeedCandidateReplicas int64           `db:"candidate_replicas"`
 	ServerID              dtypes.ServerID `db:"scheduler_sid"`
 	State                 string          `db:"state"`
+	NeedBandwidthDown     float64         `db:"bandwidth_down"`
 
 	RetryCount        int64 `db:"retry_count"`
 	ReplenishReplicas int64 `db:"replenish_replicas"`
@@ -70,11 +71,12 @@ type ReplicaInfo struct {
 
 // PullAssetReq represents a request to pull an asset to Titan
 type PullAssetReq struct {
-	ID         string
-	CID        string
-	Hash       string
-	Replicas   int64
-	Expiration time.Time
+	ID            string
+	CID           string
+	Hash          string
+	Replicas      int64
+	Expiration    time.Time
+	BandwidthDown float64
 }
 
 // ReplicaStatus represents the status of a replica pull

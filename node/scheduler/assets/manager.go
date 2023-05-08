@@ -215,14 +215,16 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 		return xerrors.Errorf("LoadAssetRecord err:%s", err.Error())
 	}
 
-	if assetRecord == nil {
+	if assetRecord == nil || assetRecord.State == Remove.String() {
 		record := &types.AssetRecord{
 			Hash:                  info.Hash,
 			CID:                   info.CID,
 			ServerID:              m.nodeMgr.ServerID,
 			NeedEdgeReplica:       info.Replicas,
-			NeedCandidateReplicas: int64(m.GetCandidateReplicaCount()),
+			NeedCandidateReplicas: int64(seedReplicaCount + m.GetCandidateReplicaCount()),
 			Expiration:            info.Expiration,
+			NeedBandwidthDown:     info.BandwidthDown,
+			State:                 UndefinedState.String(),
 		}
 
 		event := &types.AssetEventInfo{Hash: info.Hash, Event: types.AssetEventAdd, Requester: userID}
@@ -233,12 +235,7 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 		}
 
 		// create asset task
-		return m.assetStateMachines.Send(AssetHash(info.Hash), AssetStartPulls{
-			ID:                info.CID,
-			Hash:              AssetHash(info.Hash),
-			Replicas:          info.Replicas,
-			CandidateReplicas: m.GetCandidateReplicaCount(),
-		})
+		return m.assetStateMachines.Send(AssetHash(info.Hash), AssetStartPulls{})
 	}
 
 	if exist, _ := m.assetStateMachines.Has(AssetHash(assetRecord.Hash)); !exist {
@@ -246,7 +243,7 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 	}
 
 	// Check if the asset is in servicing state
-	if assetRecord.State != string(Servicing) {
+	if assetRecord.State != Servicing.String() {
 		return xerrors.Errorf("asset state is %s", assetRecord.State)
 	}
 
@@ -268,6 +265,7 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, repleni
 		NeedCandidateReplicas: int64(m.GetCandidateReplicaCount()),
 		Expiration:            assetRecord.Expiration,
 		ReplenishReplicas:     replenishReplicas,
+		NeedBandwidthDown:     assetRecord.NeedBandwidthDown,
 	}
 
 	event := &types.AssetEventInfo{Hash: assetRecord.Hash, Event: types.AssetEventAdd, Requester: userID}
@@ -277,7 +275,7 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, repleni
 		return xerrors.Errorf("SaveRecordOfAsset err:%s", err.Error())
 	}
 
-	rInfo := ReplenishReplicas{
+	rInfo := AssetForceState{
 		State: SeedSelect,
 	}
 
@@ -328,33 +326,7 @@ func (m *Manager) RemoveAsset(cid, hash, userID string) error {
 		return xerrors.Errorf("not found asset %s", hash)
 	}
 
-	// remove asset
-	err := m.assetStateMachines.Send(AssetHash(hash), AssetRemove{})
-	if err != nil {
-		return xerrors.Errorf("send to state machine err: %s ", err.Error())
-	}
-
-	cInfos, err := m.LoadAssetReplicas(hash)
-	if err != nil {
-		return xerrors.Errorf("RemoveAsset %s LoadAssetReplicas err:%s", cid, err.Error())
-	}
-
-	err = m.DeleteAssetRecord(hash, m.nodeMgr.ServerID, &types.AssetEventInfo{Hash: hash, Event: types.AssetEventRemove, Requester: userID})
-	if err != nil {
-		return xerrors.Errorf("RemoveAsset %s DeleteAssetRecord err: %s", hash, err.Error())
-	}
-
-	for _, cInfo := range cInfos {
-		// asset view
-		err = m.removeAssetFromView(cInfo.NodeID, cid)
-		if err != nil {
-			log.Errorf("RemoveAsset %s removeAssetFromView err:%s", cInfo.NodeID, err.Error())
-		}
-
-		go m.requestAssetDelete(cInfo.NodeID, cid)
-	}
-
-	return nil
+	return m.assetStateMachines.Send(AssetHash(hash), AssetForceState{State: Remove})
 }
 
 // updateAssetPullResults updates asset pull results
@@ -750,11 +722,11 @@ func (m *Manager) chooseCandidateNodesForAssetReplica(count int, filterNodes []s
 }
 
 // chooseEdgeNodesForAssetReplica selects edge nodes to pull asset replicas
-func (m *Manager) chooseEdgeNodesForAssetReplica(count int, filterNodes []string) (map[string]*node.Node, string) {
+func (m *Manager) chooseEdgeNodesForAssetReplica(count int, bandwidthDown int64, filterNodes []string) (map[string]*node.Node, string) {
 	str := fmt.Sprintf("need node:%d , filter node:%d , cur node:%d , randNum : ", count, len(filterNodes), m.nodeMgr.Edges)
 	selectMap := make(map[string]*node.Node)
 	if count <= 0 {
-		return selectMap, str
+		count = 1
 	}
 
 	if len(filterNodes) >= m.nodeMgr.Edges {
@@ -782,8 +754,13 @@ func (m *Manager) chooseEdgeNodesForAssetReplica(count int, filterNodes []string
 			continue
 		}
 
+		if _, exist := selectMap[nodeID]; exist {
+			continue
+		}
+
+		bandwidthDown -= int64(node.BandwidthDown)
 		selectMap[nodeID] = node
-		if len(selectMap) >= count {
+		if len(selectMap) >= count && bandwidthDown <= 0 {
 			break
 		}
 	}

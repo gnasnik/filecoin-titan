@@ -78,6 +78,12 @@ var (
 		Usage: "port",
 		Value: "",
 	}
+
+	bandwidthFlag = &cli.Float64Flag{
+		Name:  "bandwidth",
+		Usage: "bandwidth (unit:B/s)",
+		Value: 0,
+	}
 )
 
 var setNodePortCmd = &cli.Command{

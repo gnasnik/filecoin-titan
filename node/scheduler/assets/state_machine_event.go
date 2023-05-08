@@ -51,14 +51,6 @@ func (evt AssetForceState) applyGlobal(state *AssetPullingInfo) bool {
 	return true
 }
 
-// AssetRemove removes an asset record
-type AssetRemove struct{}
-
-func (evt AssetRemove) applyGlobal(state *AssetPullingInfo) bool {
-	*state = AssetPullingInfo{State: Remove}
-	return true
-}
-
 // InfoUpdate update asset info
 type InfoUpdate struct {
 	Size   int64
@@ -92,39 +84,22 @@ func (evt PulledResult) apply(state *AssetPullingInfo) {
 }
 
 // PullRequestSent indicates that a pull request has been sent
-type PullRequestSent struct{}
+type PullRequestSent struct {
+	CandidateWaitings int64
+	EdgeWaitings      int64
+}
 
 func (evt PullRequestSent) apply(state *AssetPullingInfo) {
-	state.CandidateReplicaFailures = make([]string, 0)
-	state.EdgeReplicaFailures = make([]string, 0)
+	state.CandidateWaitings = evt.CandidateWaitings
+	state.EdgeWaitings = evt.EdgeWaitings
 }
 
 // Normal path
 
 // AssetStartPulls start asset pulls
-type AssetStartPulls struct {
-	ID                string
-	Hash              AssetHash
-	Replicas          int64
-	CandidateReplicas int // Number of candidate node replicas
-}
+type AssetStartPulls struct{}
 
 func (evt AssetStartPulls) apply(state *AssetPullingInfo) {
-	state.CID = evt.ID
-	state.Hash = evt.Hash
-	state.EdgeReplicas = evt.Replicas
-	state.CandidateReplicas = int64(seedReplicaCount + evt.CandidateReplicas)
-}
-
-// ReplenishReplicas replenish asset replicas
-type ReplenishReplicas struct {
-	State AssetState
-}
-
-func (evt ReplenishReplicas) applyGlobal(state *AssetPullingInfo) bool {
-	// change state
-	state.State = evt.State
-	return true
 }
 
 // AssetRePull re-pull the asset

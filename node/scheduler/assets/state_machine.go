@@ -117,7 +117,7 @@ func (m *Manager) plan(events []statemachine.Event, state *AssetPullingInfo) (fu
 	case SeedFailed, CandidatesFailed, EdgesFailed:
 		return m.handlePullsFailed, processed, nil
 	case Remove:
-		return nil, processed, nil
+		return m.handleRemove, processed, nil
 	// Fatal errors
 	case UndefinedState:
 		log.Error("asset update with undefined state!")

@@ -184,7 +184,7 @@ func (n *SQLDB) LoadUnfinishedPullAssetNodes(hash string) ([]string, error) {
 }
 
 // DeleteAssetRecord removes all records associated with a given asset hash from the database.
-func (n *SQLDB) DeleteAssetRecord(hash string, serverID dtypes.ServerID, info *types.AssetEventInfo) error {
+func (n *SQLDB) DeleteAssetRecord(hash string, serverID dtypes.ServerID, info *types.AssetEventInfo, state string) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -197,25 +197,8 @@ func (n *SQLDB) DeleteAssetRecord(hash string, serverID dtypes.ServerID, info *t
 		}
 	}()
 
-	// asset record info
-	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE hash=? AND scheduler_sid=?`, assetRecordTable)
-	result, err := tx.Exec(dQuery, hash, serverID)
-	if err != nil {
-		return err
-	}
-
-	r, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if r < 1 {
-		return xerrors.New("nothing to delete")
-	}
-
-	// asset info
-	dQuery = fmt.Sprintf(`DELETE FROM %s WHERE hash=?`, assetStateTable(serverID))
-	_, err = tx.Exec(dQuery, hash)
+	uQuery := fmt.Sprintf(`UPDATE %s SET state=? WHERE hash=?`, assetStateTable(serverID))
+	_, err = tx.Exec(uQuery, state, hash)
 	if err != nil {
 		return err
 	}
@@ -356,9 +339,10 @@ func (n *SQLDB) SaveAssetRecord(rInfo *types.AssetRecord, eInfo *types.AssetEven
 
 	// asset record
 	query := fmt.Sprintf(
-		`INSERT INTO %s (hash, scheduler_sid, cid, edge_replicas, candidate_replicas, expiration) 
-		        VALUES (:hash, :scheduler_sid, :cid, :edge_replicas, :candidate_replicas, :expiration)
-				ON DUPLICATE KEY UPDATE scheduler_sid=:scheduler_sid, edge_replicas=:edge_replicas, candidate_replicas=:candidate_replicas, expiration=:expiration`, assetRecordTable)
+		`INSERT INTO %s (hash, scheduler_sid, cid, edge_replicas, candidate_replicas, expiration, bandwidth_down) 
+		        VALUES (:hash, :scheduler_sid, :cid, :edge_replicas, :candidate_replicas, :expiration, :bandwidth_down)
+				ON DUPLICATE KEY UPDATE scheduler_sid=:scheduler_sid, edge_replicas=:edge_replicas,
+				candidate_replicas=:candidate_replicas, expiration=:expiration, bandwidth_down=:bandwidth_down`, assetRecordTable)
 	_, err = tx.NamedExec(query, rInfo)
 	if err != nil {
 		return err

@@ -92,6 +92,7 @@ var cAssetRecordTable = `
 		expiration         DATETIME     NOT NULL,
 		created_time       DATETIME     DEFAULT CURRENT_TIMESTAMP,
 		end_time           DATETIME     DEFAULT CURRENT_TIMESTAMP,
+		bandwidth_down     FLOAT        DEFAULT 0,
 		PRIMARY KEY (hash)
 	) ENGINE=InnoDB COMMENT='asset record';`
 

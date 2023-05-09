@@ -15,17 +15,18 @@ type Base struct {
 // NodeInfo contains information about a node.
 type NodeInfo struct {
 	Base
-	NodeID       string   `json:"node_id" form:"nodeId" gorm:"column:node_id;comment:;" db:"node_id"`
-	SerialNumber string   `json:"serial_number" form:"serialNumber" gorm:"column:serial_number;comment:;"`
-	Type         NodeType `json:"type"`
-	ExternalIP   string   `json:"external_ip" form:"externalIp" gorm:"column:external_ip;comment:;"`
-	InternalIP   string   `json:"internal_ip" form:"internalIp" gorm:"column:internal_ip;comment:;"`
-	IPLocation   string   `json:"ip_location" form:"ipLocation" gorm:"column:ip_location;comment:;"`
-	PkgLossRatio float64  `json:"pkg_loss_ratio" form:"pkgLossRatio" gorm:"column:pkg_loss_ratio;comment:;"`
-	Latency      float64  `json:"latency" form:"latency" gorm:"column:latency;comment:;"`
-	CPUUsage     float64  `json:"cpu_usage" form:"cpuUsage" gorm:"column:cpu_usage;comment:;"`
-	MemoryUsage  float64  `json:"memory_usage" form:"memoryUsage" gorm:"column:memory_usage;comment:;"`
-	IsOnline     bool     `json:"is_online" form:"isOnline" gorm:"column:is_online;comment:;"`
+	NodeID       string    `json:"node_id" form:"nodeId" gorm:"column:node_id;comment:;" db:"node_id"`
+	SerialNumber string    `json:"serial_number" form:"serialNumber" gorm:"column:serial_number;comment:;"`
+	Type         NodeType  `json:"type"`
+	ExternalIP   string    `json:"external_ip" form:"externalIp" gorm:"column:external_ip;comment:;"`
+	InternalIP   string    `json:"internal_ip" form:"internalIp" gorm:"column:internal_ip;comment:;"`
+	IPLocation   string    `json:"ip_location" form:"ipLocation" gorm:"column:ip_location;comment:;"`
+	PkgLossRatio float64   `json:"pkg_loss_ratio" form:"pkgLossRatio" gorm:"column:pkg_loss_ratio;comment:;"`
+	Latency      float64   `json:"latency" form:"latency" gorm:"column:latency;comment:;"`
+	CPUUsage     float64   `json:"cpu_usage" form:"cpuUsage" gorm:"column:cpu_usage;comment:;"`
+	MemoryUsage  float64   `json:"memory_usage" form:"memoryUsage" gorm:"column:memory_usage;comment:;"`
+	IsOnline     bool      `json:"is_online" form:"isOnline" gorm:"column:is_online;comment:;"`
+	FirstTime    time.Time `db:"first_login_time"`
 
 	DiskUsage       float64         `json:"disk_usage" form:"diskUsage" gorm:"column:disk_usage;comment:;" db:"disk_usage"`
 	Blocks          int             `json:"blocks" form:"blockCount" gorm:"column:blocks;comment:;" db:"blocks"`
@@ -43,7 +44,7 @@ type NodeInfo struct {
 	CPUCores        int             `json:"cpu_cores" form:"cpuCores" gorm:"column:cpu_cores;comment:;" db:"cpu_cores"`
 	ProductType     string          `json:"product_type" form:"productType" gorm:"column:product_type;comment:;" db:"product_type"`
 	MacLocation     string          `json:"mac_location" form:"macLocation" gorm:"column:mac_location;comment:;" db:"mac_location"`
-	OnlineDuration  int             `json:"online_duration" form:"onlineDuration" db:"online_duration"`
+	OnlineDuration  int             `json:"online_duration" form:"onlineDuration" db:"online_duration"` // unit:Minute
 	Profit          float64         `json:"profit" db:"profit"`
 	DownloadTraffic float64         `json:"download_traffic" db:"download_traffic"`
 	UploadTraffic   float64         `json:"upload_traffic" db:"upload_traffic"`

@@ -3,7 +3,6 @@ package node
 import (
 	"crypto/rsa"
 	"fmt"
-	"math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -29,9 +28,11 @@ const (
 	saveInfoInterval = 10 // keepalive saves information every 10 times
 
 	// Processing validation result data from 5 days ago
-	vResultDay = 5 * 24 * time.Hour
+	vResultDay = 5 * oneDay
 	// Process 1000 pieces of validation result data at a time
 	vResultLimit = 1000
+
+	oneDay = 24 * time.Hour
 )
 
 // Manager is the node manager responsible for managing the online nodes
@@ -40,42 +41,24 @@ type Manager struct {
 	candidateNodes sync.Map
 	Edges          int // online edge node count
 	Candidates     int // online candidate node count
+	codeMgr        *codeManager
 
 	etcdcli *etcdcli.Client
 	notify  *pubsub.PubSub
 	*db.SQLDB
 	*rsa.PrivateKey // scheduler privateKey
 	dtypes.ServerID // scheduler server id
-
-	// Each node assigned a node number, when pulling resources, randomly select n node number, and select the node holding these node number.
-	nodeNumLock           sync.RWMutex
-	cNodeNumRand          *rand.Rand
-	eNodeNumRand          *rand.Rand
-	cNodeNumMax           int            // Candidate node number , Distribute from 1
-	eNodeNumMax           int            // Edge node number , Distribute from 1
-	cDistributedNodeNum   map[int]string // Already allocated candidate node numbers
-	cUndistributedNodeNum map[int]string // Undistributed candidate node numbers
-	eDistributedNodeNum   map[int]string // Already allocated edge node numbers
-	eUndistributedNodeNum map[int]string // Undistributed edge node numbers
 }
 
 // NewManager creates a new instance of the node manager
 func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb *pubsub.PubSub, ec *etcdcli.Client) *Manager {
-	pullSelectSeed := time.Now().UnixNano()
-
 	nodeManager := &Manager{
 		SQLDB:      sdb,
 		ServerID:   serverID,
 		PrivateKey: pk,
 		notify:     pb,
 		etcdcli:    ec,
-
-		cNodeNumRand:          rand.New(rand.NewSource(pullSelectSeed)),
-		eNodeNumRand:          rand.New(rand.NewSource(pullSelectSeed)),
-		cDistributedNodeNum:   make(map[int]string),
-		cUndistributedNodeNum: make(map[int]string),
-		eDistributedNodeNum:   make(map[int]string),
-		eUndistributedNodeNum: make(map[int]string),
+		codeMgr:    newCodeManager(),
 	}
 
 	go nodeManager.startNodeKeepaliveTimer()
@@ -104,7 +87,7 @@ func (m *Manager) startHandleValidationResultTimer() {
 
 	nextTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	if now.After(nextTime) {
-		nextTime = nextTime.Add(24 * time.Hour)
+		nextTime = nextTime.Add(oneDay)
 	}
 
 	duration := nextTime.Sub(now)
@@ -119,7 +102,7 @@ func (m *Manager) startHandleValidationResultTimer() {
 
 		m.handleValidationResults()
 
-		timer.Reset(24 * time.Hour)
+		timer.Reset(oneDay)
 	}
 }
 
@@ -135,8 +118,8 @@ func (m *Manager) storeEdgeNode(node *Node) {
 	}
 	m.Edges++
 
-	num := m.distributeEdgeNodeNum(nodeID)
-	node.nodeNum = num
+	codeNum := m.getSelectCodeNum(nodeID)
+	node.selectCodes = m.codeMgr.distributeEdgeSelectCode(nodeID, codeNum)
 
 	m.notify.Pub(node, types.EventNodeOnline.String())
 }
@@ -154,15 +137,15 @@ func (m *Manager) storeCandidateNode(node *Node) {
 	}
 	m.Candidates++
 
-	num := m.distributeCandidateNodeNum(nodeID)
-	node.nodeNum = num
+	codeNum := m.getSelectCodeNum(nodeID)
+	node.selectCodes = m.codeMgr.distributeCandidateSelectCode(nodeID, codeNum)
 
 	m.notify.Pub(node, types.EventNodeOnline.String())
 }
 
 // deleteEdgeNode removes an edge node from the manager's list of edge nodes
 func (m *Manager) deleteEdgeNode(node *Node) {
-	m.repayEdgeNodeNum(node.nodeNum)
+	m.codeMgr.repayEdgeSelectCode(node.selectCodes)
 	m.notify.Pub(node, types.EventNodeOffline.String())
 
 	nodeID := node.NodeID
@@ -175,7 +158,7 @@ func (m *Manager) deleteEdgeNode(node *Node) {
 
 // deleteCandidateNode removes a candidate node from the manager's list of candidate nodes
 func (m *Manager) deleteCandidateNode(node *Node) {
-	m.repayCandidateNodeNum(node.nodeNum)
+	m.codeMgr.repayCandidateSelectCode(node.selectCodes)
 	m.notify.Pub(node, types.EventNodeOffline.String())
 
 	nodeID := node.NodeID
@@ -345,4 +328,28 @@ func (m *Manager) handleValidationResults() {
 			log.Errorf("UpdateNodeProfitsByValidationResult err:%s", err.Error())
 		}
 	}
+}
+
+func (m *Manager) redistributeNodeSelectCodes() {
+	// repay all codes
+	m.codeMgr.cleanSelectCodes()
+
+	// redistribute codes
+	m.candidateNodes.Range(func(key, value interface{}) bool {
+		node := value.(*Node)
+
+		codeNum := m.getSelectCodeNum(node.NodeID)
+		node.selectCodes = m.codeMgr.distributeCandidateSelectCode(node.NodeID, codeNum)
+
+		return true
+	})
+
+	m.edgeNodes.Range(func(key, value interface{}) bool {
+		node := value.(*Node)
+
+		codeNum := m.getSelectCodeNum(node.NodeID)
+		node.selectCodes = m.codeMgr.distributeEdgeSelectCode(node.NodeID, codeNum)
+
+		return true
+	})
 }

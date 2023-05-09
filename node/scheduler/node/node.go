@@ -36,7 +36,7 @@ type Node struct {
 	lastRequestTime time.Time // Node last keepalive time
 	pullingCount    int       // The number of asset waiting and pulling in progress
 
-	nodeNum int // The node number assigned by the scheduler to each online node
+	selectCodes []int // The select codes assigned by the scheduler to each online node
 }
 
 // API represents the node API
@@ -125,6 +125,11 @@ func (n *Node) ConnectRPC(addr string, nodeType types.NodeType) error {
 	}
 
 	return xerrors.Errorf("node %s type %d not wrongful", n.NodeID, n.Type)
+}
+
+// SelectCodes get node select codes
+func (n *Node) SelectCodes() []int {
+	return n.selectCodes
 }
 
 // SetToken sets the token of the node

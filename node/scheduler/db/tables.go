@@ -49,6 +49,7 @@ var cNodeInfoTable = `
 	    blocks             BIGINT       DEFAULT 0,
 	    disk_usage         FLOAT        DEFAULT 0,
 	    scheduler_sid      VARCHAR(128) NOT NULL,
+		first_login_time   DATETIME     DEFAULT CURRENT_TIMESTAMP,
 	    PRIMARY KEY (node_id)
 	) ENGINE=InnoDB COMMENT='node info';`
 

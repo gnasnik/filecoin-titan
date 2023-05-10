@@ -332,7 +332,7 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (types.NodeI
 		nodeInfo = *info.NodeInfo
 		nodeInfo.IsOnline = true
 
-		log.Debugln("node select codes:", info.SelectCodes())
+		log.Debugln("node select codes:", info.SelectWeights())
 	} else {
 		dbInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
 		if err != nil {

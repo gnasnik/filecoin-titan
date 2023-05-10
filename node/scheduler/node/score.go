@@ -6,38 +6,36 @@ import (
 
 const (
 	onlineScoreRatio = 100.0
+
+	scoreErr = "Invalid score"
 )
 
-func (m *Manager) getScale() map[string]struct {
-	min, max, codeNum int
-} {
-	return map[string]struct {
-		min, max, codeNum int
-	}{
-		"A": {90, 100, 3},
-		"B": {50, 89, 2},
-		"C": {0, 49, 1},
+func (m *Manager) getLevelScale() map[string][]int {
+	cfg, err := m.config()
+	if err != nil {
+		log.Errorf("get config err:%s", err.Error())
+		return map[string][]int{}
 	}
+
+	return cfg.NodeScoreLevel
 }
 
-func (m *Manager) getSelectCodeNum(nodeID string) int {
-	score := int(m.getNodeScore(nodeID))
-
-	for _, rangeScore := range m.getScale() {
-		if score >= rangeScore.min && score <= rangeScore.max {
-			return rangeScore.codeNum
+func (m *Manager) getScoreLevel(score int) string {
+	for level, rangeScore := range m.getLevelScale() {
+		if score >= rangeScore[0] && score <= rangeScore[1] {
+			return level
 		}
 	}
 
-	return 0
+	return scoreErr
 }
 
-func (m *Manager) getNodeScore(nodeID string) float64 {
+func (m *Manager) getNodeScoreLevel(nodeID string) string {
 	// online time
 	info, err := m.LoadNodeInfo(nodeID)
 	if err != nil {
 		log.Errorf("LoadNodeInfo err:%s", err.Error())
-		return 0
+		return scoreErr
 	}
 
 	minutes := time.Now().Sub(info.FirstTime).Minutes()
@@ -46,5 +44,5 @@ func (m *Manager) getNodeScore(nodeID string) float64 {
 		onlineRatio = 1
 	}
 
-	return onlineScoreRatio * onlineRatio
+	return m.getScoreLevel(int(onlineScoreRatio * onlineRatio))
 }

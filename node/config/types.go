@@ -108,4 +108,13 @@ type SchedulerCfg struct {
 	ValidatorBaseBwDn int
 	// Increased profit after node validation passes
 	ValidationProfit float64
+	// Node score level scale
+	// The key of map is the rank name, and the value of map is a int array containing two elements,
+	// the first element of which is the minimum value of score,
+	// and the second element is the maximum value of score. (scores out of 100)
+	NodeScoreLevel map[string][]int
+	// Node level weight
+	// The key of the map is the name of the level, and the value of the map is an int,
+	// indicating how many select weight this level can get (the more select weight, the greater the probability of the node being selected)
+	LevelSelectWeight map[string]int
 }

@@ -41,24 +41,25 @@ type Manager struct {
 	candidateNodes sync.Map
 	Edges          int // online edge node count
 	Candidates     int // online candidate node count
-	codeMgr        *codeManager
-
-	etcdcli *etcdcli.Client
-	notify  *pubsub.PubSub
+	weightMgr      *weightManager
+	config         dtypes.GetSchedulerConfigFunc
+	etcdcli        *etcdcli.Client
+	notify         *pubsub.PubSub
 	*db.SQLDB
 	*rsa.PrivateKey // scheduler privateKey
 	dtypes.ServerID // scheduler server id
 }
 
 // NewManager creates a new instance of the node manager
-func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb *pubsub.PubSub, ec *etcdcli.Client) *Manager {
+func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb *pubsub.PubSub, ec *etcdcli.Client, config dtypes.GetSchedulerConfigFunc) *Manager {
 	nodeManager := &Manager{
 		SQLDB:      sdb,
 		ServerID:   serverID,
 		PrivateKey: pk,
 		notify:     pb,
 		etcdcli:    ec,
-		codeMgr:    newCodeManager(),
+		config:     config,
+		weightMgr:  newWeightManager(config),
 	}
 
 	go nodeManager.startNodeKeepaliveTimer()
@@ -82,7 +83,7 @@ func (m *Manager) startNodeKeepaliveTimer() {
 	}
 }
 
-func (m *Manager) startHandleValidationResultTimer() {
+func (m *Manager) startNodeTimer() {
 	now := time.Now()
 
 	nextTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
@@ -98,8 +99,9 @@ func (m *Manager) startHandleValidationResultTimer() {
 	for {
 		<-timer.C
 
-		log.Debugln("start validation result check ")
+		log.Debugln("start node timer...")
 
+		m.redistributeNodeSelectWeights()
 		m.handleValidationResults()
 
 		timer.Reset(oneDay)
@@ -118,8 +120,9 @@ func (m *Manager) storeEdgeNode(node *Node) {
 	}
 	m.Edges++
 
-	codeNum := m.getSelectCodeNum(nodeID)
-	node.selectCodes = m.codeMgr.distributeEdgeSelectCode(nodeID, codeNum)
+	score := m.getNodeScoreLevel(node.NodeID)
+	wNum := m.weightMgr.getSelectWeightNum(score)
+	node.selectWeights = m.weightMgr.distributeEdgeSelectWeight(nodeID, wNum)
 
 	m.notify.Pub(node, types.EventNodeOnline.String())
 }
@@ -137,15 +140,16 @@ func (m *Manager) storeCandidateNode(node *Node) {
 	}
 	m.Candidates++
 
-	codeNum := m.getSelectCodeNum(nodeID)
-	node.selectCodes = m.codeMgr.distributeCandidateSelectCode(nodeID, codeNum)
+	score := m.getNodeScoreLevel(node.NodeID)
+	wNum := m.weightMgr.getSelectWeightNum(score)
+	node.selectWeights = m.weightMgr.distributeCandidateSelectWeight(nodeID, wNum)
 
 	m.notify.Pub(node, types.EventNodeOnline.String())
 }
 
 // deleteEdgeNode removes an edge node from the manager's list of edge nodes
 func (m *Manager) deleteEdgeNode(node *Node) {
-	m.codeMgr.repayEdgeSelectCode(node.selectCodes)
+	m.weightMgr.repayEdgeSelectWeight(node.selectWeights)
 	m.notify.Pub(node, types.EventNodeOffline.String())
 
 	nodeID := node.NodeID
@@ -158,7 +162,7 @@ func (m *Manager) deleteEdgeNode(node *Node) {
 
 // deleteCandidateNode removes a candidate node from the manager's list of candidate nodes
 func (m *Manager) deleteCandidateNode(node *Node) {
-	m.codeMgr.repayCandidateSelectCode(node.selectCodes)
+	m.weightMgr.repayCandidateSelectWeight(node.selectWeights)
 	m.notify.Pub(node, types.EventNodeOffline.String())
 
 	nodeID := node.NodeID
@@ -330,16 +334,17 @@ func (m *Manager) handleValidationResults() {
 	}
 }
 
-func (m *Manager) redistributeNodeSelectCodes() {
-	// repay all codes
-	m.codeMgr.cleanSelectCodes()
+func (m *Manager) redistributeNodeSelectWeights() {
+	// repay all weights
+	m.weightMgr.cleanSelectWeights()
 
-	// redistribute codes
+	// redistribute weights
 	m.candidateNodes.Range(func(key, value interface{}) bool {
 		node := value.(*Node)
 
-		codeNum := m.getSelectCodeNum(node.NodeID)
-		node.selectCodes = m.codeMgr.distributeCandidateSelectCode(node.NodeID, codeNum)
+		score := m.getNodeScoreLevel(node.NodeID)
+		wNum := m.weightMgr.getSelectWeightNum(score)
+		node.selectWeights = m.weightMgr.distributeCandidateSelectWeight(node.NodeID, wNum)
 
 		return true
 	})
@@ -347,8 +352,9 @@ func (m *Manager) redistributeNodeSelectCodes() {
 	m.edgeNodes.Range(func(key, value interface{}) bool {
 		node := value.(*Node)
 
-		codeNum := m.getSelectCodeNum(node.NodeID)
-		node.selectCodes = m.codeMgr.distributeEdgeSelectCode(node.NodeID, codeNum)
+		score := m.getNodeScoreLevel(node.NodeID)
+		wNum := m.weightMgr.getSelectWeightNum(score)
+		node.selectWeights = m.weightMgr.distributeEdgeSelectWeight(node.NodeID, wNum)
 
 		return true
 	})

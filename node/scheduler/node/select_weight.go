@@ -10,157 +10,135 @@ import (
 
 type weightManager struct {
 	config dtypes.GetSchedulerConfigFunc
-
 	// Each node assigned a select weight, when pulling resources, randomly select n select weight, and select the node holding these select weight.
-	cSelectWeightLock          sync.RWMutex
-	cSelectWeightRand          *rand.Rand
-	cSelectWeightMax           int            // Candidate select weight , Distribute from 1
-	cDistributedSelectWeight   map[int]string // Already allocated candidate select weights
-	cUndistributedSelectWeight map[int]string // Undistributed candidate select weights
 
-	eSelectWeightLock          sync.RWMutex
-	eSelectWeightRand          *rand.Rand
-	eSelectWeightMax           int            // Edge select weight , Distribute from 1
-	eDistributedSelectWeight   map[int]string // Already allocated edge select weights
-	eUndistributedSelectWeight map[int]string // Undistributed edge select weights
+	// Weight distribution management for candidate nodes
+	candidateLock           *sync.RWMutex
+	candidateRand           *rand.Rand
+	candidateMax            int            // Candidate select weight , Distribute from 1
+	distributedCandidates   map[int]string // Already allocated candidate select weights
+	undistributedCandidates map[int]string // Undistributed candidate select weights
+
+	// Weight distribution management for edge nodes
+	edgeLock           *sync.RWMutex
+	edgeRand           *rand.Rand
+	edgeMax            int            // Edge select weight , Distribute from 1
+	distributedEdges   map[int]string // Already allocated edge select weights
+	undistributedEdges map[int]string // Undistributed edge select weights
 }
 
 func newWeightManager(config dtypes.GetSchedulerConfigFunc) *weightManager {
 	pullSelectSeed := time.Now().UnixNano()
 
 	manager := &weightManager{
-		cSelectWeightRand:          rand.New(rand.NewSource(pullSelectSeed)),
-		eSelectWeightRand:          rand.New(rand.NewSource(pullSelectSeed)),
-		cDistributedSelectWeight:   make(map[int]string),
-		cUndistributedSelectWeight: make(map[int]string),
-		eDistributedSelectWeight:   make(map[int]string),
-		eUndistributedSelectWeight: make(map[int]string),
-		config:                     config,
+		edgeLock:                new(sync.RWMutex),
+		candidateLock:           new(sync.RWMutex),
+		candidateRand:           rand.New(rand.NewSource(pullSelectSeed)),
+		edgeRand:                rand.New(rand.NewSource(pullSelectSeed)),
+		distributedCandidates:   make(map[int]string),
+		undistributedCandidates: make(map[int]string),
+		distributedEdges:        make(map[int]string),
+		undistributedEdges:      make(map[int]string),
+		config:                  config,
 	}
 
 	return manager
 }
 
-// distributeCandidateSelectWeight assigns undistributed select weight to node and returns the assigned weights
-func (c *weightManager) distributeCandidateSelectWeight(nodeID string, n int) []int {
-	c.cSelectWeightLock.Lock()
-	defer c.cSelectWeightLock.Unlock()
-
-	out := make([]int, 0)
-
-	for i := 0; i < n; i++ {
-		out = append(out, c.getCandidateSelectWeights())
-	}
-
-	for _, w := range out {
-		// delete from Undistributed map
-		delete(c.cUndistributedSelectWeight, w)
-		// add to Distributed map
-		c.cDistributedSelectWeight[w] = nodeID
-	}
-
-	return out
+// Assigns undistributed weight to candidate node and returns the assigned weights
+func (wm *weightManager) distributeCandidateWeight(nodeID string, n int) []int {
+	return wm.distributeWeight(nodeID, n, wm.candidateLock, &wm.candidateMax, wm.distributedCandidates, wm.undistributedCandidates)
 }
 
-// distributeEdgeSelectWeight assigns undistributed select weight to node and returns the assigned weights
-func (c *weightManager) distributeEdgeSelectWeight(nodeID string, n int) []int {
-	c.eSelectWeightLock.Lock()
-	defer c.eSelectWeightLock.Unlock()
-
-	out := make([]int, 0)
-
-	for i := 0; i < n; i++ {
-		out = append(out, c.getEdgeSelectWeights())
-	}
-
-	for _, w := range out {
-		// delete from Undistributed map
-		delete(c.eUndistributedSelectWeight, w)
-		// add to Distributed map
-		c.eDistributedSelectWeight[w] = nodeID
-	}
-
-	return out
+// Assigns undistributed weight to edge node and returns the assigned weights
+func (wm *weightManager) distributeEdgeWeight(nodeID string, n int) []int {
+	return wm.distributeWeight(nodeID, n, wm.edgeLock, &wm.edgeMax, wm.distributedEdges, wm.undistributedEdges)
 }
 
-func (c *weightManager) getCandidateSelectWeights() int {
-	if len(c.cUndistributedSelectWeight) > 0 {
-		for w := range c.cUndistributedSelectWeight {
+func (wm *weightManager) distributeWeight(nodeID string, n int, lock *sync.RWMutex, max *int, distributed map[int]string, undistributed map[int]string) []int {
+	lock.Lock()
+	defer lock.Unlock()
+
+	assigned := make([]int, 0)
+
+	for i := 0; i < n; i++ {
+		weight := wm.getWeight(undistributed, max)
+		assigned = append(assigned, weight)
+	}
+
+	for _, w := range assigned {
+		delete(undistributed, w)
+		distributed[w] = nodeID
+	}
+
+	return assigned
+}
+
+func (wm *weightManager) getWeight(undistributed map[int]string, max *int) int {
+	if len(undistributed) > 0 {
+		for w := range undistributed {
 			return w
 		}
 	}
 
-	c.cSelectWeightMax++
-	return c.cSelectWeightMax
+	(*max)++
+	return *max
 }
 
-func (c *weightManager) getEdgeSelectWeights() int {
-	if len(c.eUndistributedSelectWeight) > 0 {
-		for w := range c.eUndistributedSelectWeight {
-			return w
-		}
-	}
-
-	c.eSelectWeightMax++
-	return c.eSelectWeightMax
+// Repays the selection weight to candidate undistributed weights
+func (wm *weightManager) repayCandidateWeight(weights []int) {
+	wm.repayWeight(weights, wm.candidateLock, wm.distributedCandidates, wm.undistributedCandidates)
 }
 
-// repayCandidateSelectWeight repay the selection weight to cUndistributedSelectWeight
-func (c *weightManager) repayCandidateSelectWeight(weights []int) {
-	c.cSelectWeightLock.Lock()
-	defer c.cSelectWeightLock.Unlock()
+// Repays the selection weight to edge undistributed weights
+func (wm *weightManager) repayEdgeWeight(weights []int) {
+	wm.repayWeight(weights, wm.edgeLock, wm.distributedEdges, wm.undistributedEdges)
+}
+
+func (wm *weightManager) repayWeight(weights []int, lock *sync.RWMutex, distributed map[int]string, undistributed map[int]string) {
+	lock.Lock()
+	defer lock.Unlock()
 
 	for _, w := range weights {
-		delete(c.cDistributedSelectWeight, w)
-		c.cUndistributedSelectWeight[w] = ""
+		delete(distributed, w)
+		undistributed[w] = ""
 	}
 }
 
-// repayEdgeSelectWeight repay the selection weight to eUndistributedSelectWeight
-func (c *weightManager) repayEdgeSelectWeight(weights []int) {
-	c.eSelectWeightLock.Lock()
-	defer c.eSelectWeightLock.Unlock()
-
-	for _, w := range weights {
-		delete(c.eDistributedSelectWeight, w)
-		c.eUndistributedSelectWeight[w] = ""
-	}
+func (wm *weightManager) getCandidateWeightRandom() (string, int) {
+	return wm.getWeightRandom(wm.candidateLock, wm.candidateRand, wm.candidateMax, wm.distributedCandidates)
 }
 
-func (c *weightManager) getCandidateSelectWeightRandom() (string, int) {
-	c.cSelectWeightLock.Lock()
-	defer c.cSelectWeightLock.Unlock()
-
-	w := c.cSelectWeightRand.Intn(c.cSelectWeightMax) + 1
-	return c.cDistributedSelectWeight[w], w
+func (wm *weightManager) getEdgeWeightRandom() (string, int) {
+	return wm.getWeightRandom(wm.edgeLock, wm.edgeRand, wm.edgeMax, wm.distributedEdges)
 }
 
-func (c *weightManager) getEdgeSelectWeightRandom() (string, int) {
-	c.eSelectWeightLock.Lock()
-	defer c.eSelectWeightLock.Unlock()
+func (wm *weightManager) getWeightRandom(lock *sync.RWMutex, r *rand.Rand, max int, distributed map[int]string) (string, int) {
+	lock.Lock()
+	defer lock.Unlock()
 
-	w := c.eSelectWeightRand.Intn(c.eSelectWeightMax) + 1
-	return c.eDistributedSelectWeight[w], w
+	w := r.Intn(max) + 1
+	return distributed[w], w
 }
 
-func (c *weightManager) cleanSelectWeights() {
-	c.cSelectWeightLock.Lock()
-	defer c.cSelectWeightLock.Unlock()
+func (wm *weightManager) cleanWeights() {
+	wm.candidateLock.Lock()
+	defer wm.candidateLock.Unlock()
 
-	c.eSelectWeightLock.Lock()
-	defer c.eSelectWeightLock.Unlock()
+	wm.edgeLock.Lock()
+	defer wm.edgeLock.Unlock()
 
-	c.cDistributedSelectWeight = make(map[int]string)
-	c.cUndistributedSelectWeight = make(map[int]string)
-	c.eDistributedSelectWeight = make(map[int]string)
-	c.eUndistributedSelectWeight = make(map[int]string)
+	wm.distributedCandidates = make(map[int]string)
+	wm.undistributedCandidates = make(map[int]string)
+	wm.distributedEdges = make(map[int]string)
+	wm.undistributedEdges = make(map[int]string)
 
-	c.cSelectWeightMax = 0
-	c.eSelectWeightMax = 0
+	wm.candidateMax = 0
+	wm.edgeMax = 0
 }
 
-func (c *weightManager) getWeightScale() map[string]int {
-	cfg, err := c.config()
+func (wm *weightManager) getWeightScale() map[string]int {
+	cfg, err := wm.config()
 	if err != nil {
 		log.Errorf("get config err:%s", err.Error())
 		return map[string]int{}
@@ -169,8 +147,8 @@ func (c *weightManager) getWeightScale() map[string]int {
 	return cfg.LevelSelectWeight
 }
 
-func (c *weightManager) getSelectWeightNum(scoreLevel string) int {
-	num, exist := c.getWeightScale()[scoreLevel]
+func (wm *weightManager) getWeightNum(scoreLevel string) int {
+	num, exist := wm.getWeightScale()[scoreLevel]
 	if exist {
 		return num
 	}

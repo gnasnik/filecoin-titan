@@ -100,12 +100,12 @@ func (m *Manager) NodeOnline(node *Node) error {
 
 // GetRandomCandidate returns a random candidate node
 func (m *Manager) GetRandomCandidate() (*Node, int) {
-	nodeID, weight := m.weightMgr.getCandidateSelectWeightRandom()
+	nodeID, weight := m.weightMgr.getCandidateWeightRandom()
 	return m.GetCandidateNode(nodeID), weight
 }
 
 // GetRandomEdge returns a random edge node
 func (m *Manager) GetRandomEdge() (*Node, int) {
-	nodeID, weight := m.weightMgr.getEdgeSelectWeightRandom()
+	nodeID, weight := m.weightMgr.getEdgeWeightRandom()
 	return m.GetEdgeNode(nodeID), weight
 }

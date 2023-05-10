@@ -121,8 +121,8 @@ func (m *Manager) storeEdgeNode(node *Node) {
 	m.Edges++
 
 	score := m.getNodeScoreLevel(node.NodeID)
-	wNum := m.weightMgr.getSelectWeightNum(score)
-	node.selectWeights = m.weightMgr.distributeEdgeSelectWeight(nodeID, wNum)
+	wNum := m.weightMgr.getWeightNum(score)
+	node.selectWeights = m.weightMgr.distributeEdgeWeight(nodeID, wNum)
 
 	m.notify.Pub(node, types.EventNodeOnline.String())
 }
@@ -141,15 +141,15 @@ func (m *Manager) storeCandidateNode(node *Node) {
 	m.Candidates++
 
 	score := m.getNodeScoreLevel(node.NodeID)
-	wNum := m.weightMgr.getSelectWeightNum(score)
-	node.selectWeights = m.weightMgr.distributeCandidateSelectWeight(nodeID, wNum)
+	wNum := m.weightMgr.getWeightNum(score)
+	node.selectWeights = m.weightMgr.distributeCandidateWeight(nodeID, wNum)
 
 	m.notify.Pub(node, types.EventNodeOnline.String())
 }
 
 // deleteEdgeNode removes an edge node from the manager's list of edge nodes
 func (m *Manager) deleteEdgeNode(node *Node) {
-	m.weightMgr.repayEdgeSelectWeight(node.selectWeights)
+	m.weightMgr.repayEdgeWeight(node.selectWeights)
 	m.notify.Pub(node, types.EventNodeOffline.String())
 
 	nodeID := node.NodeID
@@ -162,7 +162,7 @@ func (m *Manager) deleteEdgeNode(node *Node) {
 
 // deleteCandidateNode removes a candidate node from the manager's list of candidate nodes
 func (m *Manager) deleteCandidateNode(node *Node) {
-	m.weightMgr.repayCandidateSelectWeight(node.selectWeights)
+	m.weightMgr.repayCandidateWeight(node.selectWeights)
 	m.notify.Pub(node, types.EventNodeOffline.String())
 
 	nodeID := node.NodeID
@@ -336,15 +336,15 @@ func (m *Manager) handleValidationResults() {
 
 func (m *Manager) redistributeNodeSelectWeights() {
 	// repay all weights
-	m.weightMgr.cleanSelectWeights()
+	m.weightMgr.cleanWeights()
 
 	// redistribute weights
 	m.candidateNodes.Range(func(key, value interface{}) bool {
 		node := value.(*Node)
 
 		score := m.getNodeScoreLevel(node.NodeID)
-		wNum := m.weightMgr.getSelectWeightNum(score)
-		node.selectWeights = m.weightMgr.distributeCandidateSelectWeight(node.NodeID, wNum)
+		wNum := m.weightMgr.getWeightNum(score)
+		node.selectWeights = m.weightMgr.distributeCandidateWeight(node.NodeID, wNum)
 
 		return true
 	})
@@ -353,8 +353,8 @@ func (m *Manager) redistributeNodeSelectWeights() {
 		node := value.(*Node)
 
 		score := m.getNodeScoreLevel(node.NodeID)
-		wNum := m.weightMgr.getSelectWeightNum(score)
-		node.selectWeights = m.weightMgr.distributeEdgeSelectWeight(node.NodeID, wNum)
+		wNum := m.weightMgr.getWeightNum(score)
+		node.selectWeights = m.weightMgr.distributeEdgeWeight(node.NodeID, wNum)
 
 		return true
 	})

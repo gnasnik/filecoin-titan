@@ -47,7 +47,7 @@ type Scheduler interface {
 	// GetCandidateURLsForDetectNat Get the rpc url of the specified number of candidate nodes
 	GetCandidateURLsForDetectNat(ctx context.Context) ([]string, error) //perm:default
 	// GetEdgeExternalServiceAddress nat travel, get edge external addr with different candidate
-	GetEdgeExternalServiceAddress(ctx context.Context, nodeID, candidateURL string) (string, error) //perm:edge
+	GetEdgeExternalServiceAddress(ctx context.Context, nodeID, candidateURL string) (string, error) //perm:admin
 	// NatPunch nat punch between user and node
 	NatPunch(ctx context.Context, target *types.NatPunchReq) error //perm:default
 	// GetEdgeDownloadInfos retrieves download information for the edge with the asset with the specified CID.

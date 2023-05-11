@@ -106,7 +106,7 @@ type DownloadHistory struct {
 
 // EdgeDownloadInfo represents download information for an edge node
 type EdgeDownloadInfo struct {
-	URL     string
+	Address string
 	Tk      *Token
 	NodeID  string
 	NatType string
@@ -122,8 +122,8 @@ type EdgeDownloadInfoList struct {
 
 // CandidateDownloadInfo represents download information for a candidate
 type CandidateDownloadInfo struct {
-	URL string
-	Tk  *Token
+	Address string
+	Tk      *Token
 }
 
 // NodeReplicaStatus represents the status of a node cache

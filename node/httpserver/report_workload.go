@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	batch = 1000
+	batch          = 1000
+	tickerInterval = 60 * time.Second
 )
 
 type report struct {
@@ -41,7 +42,7 @@ func newReporter(server *HttpServer) *reporter {
 
 func (r *reporter) startTicker() {
 	for {
-		time.Sleep(1 * time.Second)
+		time.Sleep(tickerInterval)
 
 		if err := r.handleReports(); err != nil {
 			log.Errorf("sendReports error:%s", err.Error())

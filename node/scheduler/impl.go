@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"encoding/gob"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net"
 	"time"
@@ -257,15 +258,13 @@ func (s *Scheduler) NodeValidationResult(ctx context.Context, result api.Validat
 		return err
 	}
 
-	var buffer bytes.Buffer
-	enc := gob.NewEncoder(&buffer)
-	err = enc.Encode(result)
+	bytes, err := json.Marshal(result)
 	if err != nil {
 		return err
 	}
 
 	rsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	err = rsa.VerifySign(node.PublicKey(), signBuf, buffer.Bytes())
+	err = rsa.VerifySign(node.PublicKey(), signBuf, bytes)
 	if err != nil {
 		return err
 	}
@@ -478,8 +477,8 @@ func (s *Scheduler) GetCandidateDownloadInfos(ctx context.Context, cid string) (
 		tkPayloads = append(tkPayloads, tkPayload)
 
 		source := &types.CandidateDownloadInfo{
-			URL: cNode.DownloadAddr(),
-			Tk:  token,
+			Address: cNode.DownloadAddr(),
+			Tk:      token,
 		}
 
 		sources = append(sources, source)

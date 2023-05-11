@@ -44,8 +44,12 @@ type ManagerOptions struct {
 
 // NewManager creates a new Manager instance
 func NewManager(opts *ManagerOptions) (*Manager, error) {
-	// TODO store assets in multi storage
-	asset, err := newAsset(filepath.Join(opts.AssetsPaths[0], assetsDir), assetSuffix)
+	assetsPaths, err := newAssetsPaths(opts.AssetsPaths, assetsDir)
+	if err != nil {
+		return nil, err
+	}
+
+	asset, err := newAsset(assetsPaths, assetSuffix)
 	if err != nil {
 		return nil, err
 	}

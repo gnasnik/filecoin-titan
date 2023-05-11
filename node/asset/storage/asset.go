@@ -16,18 +16,13 @@ import (
 
 // asset save asset file
 type asset struct {
-	baseDir string
-	suffix  string
+	assetsPaths *assetsPaths
+	suffix      string
 }
 
 // newAsset initializes a new asset instance.
-func newAsset(baseDirs string, suffix string) (*asset, error) {
-	err := os.MkdirAll(baseDirs, 0o755)
-	if err != nil {
-		return nil, err
-	}
-
-	return &asset{baseDir: baseDirs, suffix: suffix}, nil
+func newAsset(assetsPaths *assetsPaths, suffix string) (*asset, error) {
+	return &asset{assetsPaths: assetsPaths, suffix: suffix}, nil
 }
 
 // generateAssetName creates a new asset file name.
@@ -37,8 +32,13 @@ func (a *asset) generateAssetName(root cid.Cid) string {
 
 // storeBlocks stores blocks to the file system.
 func (a *asset) storeBlocks(ctx context.Context, root cid.Cid, blks []blocks.Block) error {
-	assetDir := filepath.Join(a.baseDir, root.Hash().String())
-	err := os.MkdirAll(assetDir, 0o755)
+	baseDir, err := a.assetsPaths.allocatePath(root, blks)
+	if err != nil {
+		return err
+	}
+
+	assetDir := filepath.Join(baseDir, root.Hash().String())
+	err = os.MkdirAll(assetDir, 0o755)
 	if err != nil {
 		return err
 	}
@@ -55,14 +55,19 @@ func (a *asset) storeBlocks(ctx context.Context, root cid.Cid, blks []blocks.Blo
 
 // storeAsset stores the asset to the file system.
 func (a *asset) storeAsset(ctx context.Context, root cid.Cid) error {
-	assetDir := filepath.Join(a.baseDir, root.Hash().String())
+	baseDir, err := a.assetsPaths.findPath(root)
+	if err != nil {
+		return err
+	}
+
+	assetDir := filepath.Join(baseDir, root.Hash().String())
 	entries, err := os.ReadDir(assetDir)
 	if err != nil {
 		return err
 	}
 
 	name := a.generateAssetName(root)
-	path := filepath.Join(a.baseDir, name)
+	path := filepath.Join(baseDir, name)
 
 	rw, err := blockstore.OpenReadWrite(path, []cid.Cid{root})
 	if err != nil {
@@ -91,8 +96,13 @@ func (a *asset) storeAsset(ctx context.Context, root cid.Cid) error {
 // get returns a ReadSeekCloser for the given asset root.
 // The caller must close the reader.
 func (a *asset) get(root cid.Cid) (io.ReadSeekCloser, error) {
+	baseDir, err := a.assetsPaths.findPath(root)
+	if err != nil {
+		return nil, err
+	}
+
 	// check if put asset complete
-	assetDir := filepath.Join(a.baseDir, root.Hash().String())
+	assetDir := filepath.Join(baseDir, root.Hash().String())
 	if _, err := os.Stat(assetDir); err != nil {
 		if !os.IsNotExist(err) {
 			return nil, err
@@ -102,13 +112,22 @@ func (a *asset) get(root cid.Cid) (io.ReadSeekCloser, error) {
 	}
 
 	name := a.generateAssetName(root)
-	filePath := filepath.Join(a.baseDir, name)
+	filePath := filepath.Join(baseDir, name)
 	return os.Open(filePath)
 }
 
 // exists checks if the asset exists in the file system.
 func (a *asset) exists(root cid.Cid) (bool, error) {
-	assetDir := filepath.Join(a.baseDir, root.Hash().String())
+	if ok := a.assetsPaths.exists(root); !ok {
+		return false, nil
+	}
+
+	baseDir, err := a.assetsPaths.findPath(root)
+	if err != nil {
+		return false, err
+	}
+
+	assetDir := filepath.Join(baseDir, root.Hash().String())
 	if _, err := os.Stat(assetDir); err != nil {
 		if !os.IsNotExist(err) {
 			return false, err
@@ -118,9 +137,9 @@ func (a *asset) exists(root cid.Cid) (bool, error) {
 	}
 
 	name := a.generateAssetName(root)
-	filePath := filepath.Join(a.baseDir, name)
+	filePath := filepath.Join(baseDir, name)
 
-	_, err := os.Stat(filePath)
+	_, err = os.Stat(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
@@ -134,7 +153,14 @@ func (a *asset) exists(root cid.Cid) (bool, error) {
 
 // remove deletes the asset from the file system.
 func (a *asset) remove(root cid.Cid) error {
-	assetDir := filepath.Join(a.baseDir, root.Hash().String())
+	baseDir, err := a.assetsPaths.findPath(root)
+	if err != nil {
+		return err
+	}
+
+	a.assetsPaths.releasePath(root)
+
+	assetDir := filepath.Join(baseDir, root.Hash().String())
 	if err := os.RemoveAll(assetDir); err != nil {
 		if e, ok := err.(*os.PathError); !ok {
 			return err
@@ -144,7 +170,7 @@ func (a *asset) remove(root cid.Cid) error {
 	}
 
 	name := a.generateAssetName(root)
-	path := filepath.Join(a.baseDir, name)
+	path := filepath.Join(baseDir, name)
 
 	// remove file
 	return os.Remove(path)
@@ -152,10 +178,14 @@ func (a *asset) remove(root cid.Cid) error {
 
 // count returns the number of assets in the file system.
 func (a *asset) count() (int, error) {
-	entries, err := os.ReadDir(a.baseDir)
-	if err != nil {
-		return 0, err
+	count := 0
+	for _, baseDir := range a.assetsPaths.baseDirs {
+		entries, err := os.ReadDir(baseDir)
+		if err != nil {
+			return 0, err
+		}
+		count += len(entries)
 	}
 
-	return len(entries), nil
+	return count, nil
 }

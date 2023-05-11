@@ -1,12 +1,11 @@
 package candidate
 
 import (
-	"bytes"
 	"context"
 	"crypto"
 	"crypto/rsa"
-	"encoding/gob"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -95,15 +94,13 @@ func (bw *blockWaiter) wait() {
 
 // sendValidateResult sends the validation result
 func (bw *blockWaiter) sendValidateResult() error {
-	var buffer bytes.Buffer
-	enc := gob.NewEncoder(&buffer)
-	err := enc.Encode(bw.result)
+	bytes, err := json.Marshal(bw.result)
 	if err != nil {
 		return err
 	}
 
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	sign, err := titanRsa.Sign(bw.privateKey, buffer.Bytes())
+	sign, err := titanRsa.Sign(bw.privateKey, bytes)
 	if err != nil {
 		return xerrors.Errorf("sign validate result error: %w", err.Error())
 	}

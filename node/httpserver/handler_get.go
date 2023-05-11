@@ -41,12 +41,6 @@ func (hs *HttpServer) getHandler(w http.ResponseWriter, r *http.Request) {
 		atomic.AddUint32(&hs.downloadThreadCount, ^uint32(0))
 	}()
 
-	if hs.validation != nil {
-		hs.validation.StopValidation()
-	} else {
-		log.Warn("not setting validation")
-	}
-
 	respFormat, formatParams, err := customResponseFormat(r)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("processing the Accept header error: %s", err.Error()), http.StatusBadRequest)

@@ -231,14 +231,14 @@ var edgeExternalAddrCmd = &cli.Command{
 	Flags: []cli.Flag{
 		nodeIDFlag,
 		&cli.StringFlag{
-			Name:  "scheduler-url",
-			Usage: "scheduler url",
+			Name:  "candidate-url",
+			Usage: "candidate url",
 			Value: "http://localhost:3456/rpc/v0",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
 		nodeID := cctx.String("node-id")
-		schedulerURL := cctx.String("scheduler-url")
+		candidateURL := cctx.String("candidate-url")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -247,7 +247,7 @@ var edgeExternalAddrCmd = &cli.Command{
 		}
 		defer closer()
 
-		addr, err := schedulerAPI.GetEdgeExternalServiceAddress(ctx, nodeID, schedulerURL)
+		addr, err := schedulerAPI.GetEdgeExternalServiceAddress(ctx, nodeID, candidateURL)
 		if err != nil {
 			return err
 		}

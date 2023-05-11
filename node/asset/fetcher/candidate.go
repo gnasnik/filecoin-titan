@@ -41,20 +41,20 @@ func (c *CandidateFetcher) FetchBlocks(ctx context.Context, cids []string, dss [
 }
 
 // fetchSingleBlock fetches a single block for the given candidate download info and cid string
-func (c *CandidateFetcher) fetchSingleBlock(ctx context.Context, ds *types.CandidateDownloadInfo, cidStr string) (blocks.Block, error) {
-	if len(ds.URL) == 0 {
+func (c *CandidateFetcher) fetchSingleBlock(ctx context.Context, downloadSource *types.CandidateDownloadInfo, cidStr string) (blocks.Block, error) {
+	if len(downloadSource.Address) == 0 {
 		return nil, fmt.Errorf("candidate address can not empty")
 	}
 
-	if ds.Tk == nil {
+	if downloadSource.Tk == nil {
 		return nil, fmt.Errorf("token can not empty")
 	}
 
-	buf, err := encode(ds.Tk)
+	buf, err := encode(downloadSource.Tk)
 	if err != nil {
 		return nil, err
 	}
-	url := fmt.Sprintf("http://%s/ipfs/%s?format=raw", ds.URL, cidStr)
+	url := fmt.Sprintf("http://%s/ipfs/%s?format=raw", downloadSource.Address, cidStr)
 
 	req, err := http.NewRequest(http.MethodGet, url, buf)
 	if err != nil {
@@ -101,7 +101,6 @@ func (c *CandidateFetcher) retrieveBlocks(ctx context.Context, cids []string, ds
 	}
 
 	blks := make([]blocks.Block, 0, len(cids))
-	// candidates := make(map[string]api.CandidateFetcher)
 	blksLock := &sync.Mutex{}
 
 	var wg sync.WaitGroup

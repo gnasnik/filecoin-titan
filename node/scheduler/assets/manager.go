@@ -660,8 +660,8 @@ func (m *Manager) getDownloadSources(cid string, nodes []string) []*types.Candid
 		tkPayloads = append(tkPayloads, tkPayload)
 
 		source := &types.CandidateDownloadInfo{
-			URL: cNode.DownloadAddr(),
-			Tk:  token,
+			Address: cNode.DownloadAddr(),
+			Tk:      token,
 		}
 
 		sources = append(sources, source)

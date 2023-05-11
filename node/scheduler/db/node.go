@@ -348,6 +348,29 @@ func (n *SQLDB) LoadTopHash(nodeID string) (string, error) {
 	return out, nil
 }
 
+// LoadSyncTime load assets view sync time
+func (n *SQLDB) LoadSyncTime(nodeID string) (time.Time, error) {
+	query := fmt.Sprintf(`SELECT sync_time FROM %s WHERE node_id=?`, assetsViewTable)
+
+	var out time.Time
+	err := n.db.Get(&out, query, nodeID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return time.Now().Add(-1 * 24 * time.Hour), nil
+		}
+		return time.Now(), err
+	}
+
+	return out, nil
+}
+
+// UpdateSyncTime update assets view sync time
+func (n *SQLDB) UpdateSyncTime(nodeID string) error {
+	query := fmt.Sprintf(`UPDATE %s SET sync_time=? WHERE node_id=?`, assetsViewTable)
+	_, err := n.db.Exec(query, time.Now(), nodeID)
+	return err
+}
+
 // LoadBucketHashes load assets view buckets hashes
 func (n *SQLDB) LoadBucketHashes(nodeID string) ([]byte, error) {
 	query := fmt.Sprintf(`SELECT bucket_hashes FROM %s WHERE node_id=?`, assetsViewTable)

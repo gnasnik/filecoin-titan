@@ -26,7 +26,6 @@ import (
 
 type Validation interface {
 	SetFunc(func() uint32)
-	StopValidation()
 }
 
 type HttpServer struct {

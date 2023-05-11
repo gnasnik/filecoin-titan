@@ -63,7 +63,7 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) (*type
 		tkPayloads = append(tkPayloads, tkPayload)
 
 		info := &types.EdgeDownloadInfo{
-			URL:     eNode.DownloadAddr(),
+			Address: eNode.DownloadAddr(),
 			NodeID:  nodeID,
 			Tk:      token,
 			NatType: eNode.NATType,

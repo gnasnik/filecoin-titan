@@ -120,6 +120,7 @@ var cAssetViewTable = `
 		node_id       VARCHAR(128) NOT NULL UNIQUE,
 		top_hash      VARCHAR(128) NOT NULL,
 		bucket_hashes BLOB         NOT NULL,
+		sync_time     DATETIME     DEFAULT CURRENT_TIMESTAMP,
 		PRIMARY KEY (node_id)
 	) ENGINE=InnoDB COMMENT='asset view';`
 
@@ -139,8 +140,8 @@ var cWorkloadTable = `
 		limit_rate      INT          DEFAULT 0,
 		create_time     DATETIME     NOT NULL,
 		expiration      DATETIME     NOT NULL,
-		client_workload MEDIUMBLOB ,
-		node_workload   MEDIUMBLOB ,
+		client_workload BLOB ,
+		node_workload   BLOB ,
 		PRIMARY KEY (token_id)
 	) ENGINE=InnoDB COMMENT='workload report';`
 

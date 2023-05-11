@@ -393,6 +393,11 @@ var sConfigSetCmd = &cli.Command{
 			Usage: "increased profit after node validation passes",
 			Value: 1,
 		},
+		&cli.Float64Flag{
+			Name:  "election-cycle",
+			Usage: "lectionCycle cycle (Unit:day)",
+			Value: 5,
+		},
 	},
 
 	Action: func(cctx *cli.Context) error {
@@ -450,6 +455,9 @@ var sConfigSetCmd = &cli.Command{
 			}
 			if cctx.IsSet("validation-profit") {
 				cfg.ValidationProfit = cctx.Float64("validation-profit")
+			}
+			if cctx.IsSet("election-cycle") {
+				cfg.ElectionCycle = cctx.Int("election-cycle")
 			}
 		})
 

@@ -179,6 +179,7 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 		Bandwidth:   vr.Bandwidth,
 		Duration:    vr.CostTime,
 		Profit:      profit,
+		Msg:         vr.Msg,
 	}
 
 	return m.nodeMgr.UpdateValidationResultInfo(resultInfo)

@@ -28,6 +28,8 @@ type ValidationResult struct {
 	CostTime  int64
 	IsTimeout bool
 
+	Msg string
+
 	// key is random index
 	// values is cid
 	Cids []string

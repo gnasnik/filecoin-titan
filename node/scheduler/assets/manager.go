@@ -221,7 +221,7 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 			CID:                   info.CID,
 			ServerID:              m.nodeMgr.ServerID,
 			NeedEdgeReplica:       info.Replicas,
-			NeedCandidateReplicas: int64(seedReplicaCount + m.GetCandidateReplicaCount()),
+			NeedCandidateReplicas: int64(m.GetCandidateReplicaCount()),
 			Expiration:            info.Expiration,
 			NeedBandwidthDown:     info.BandwidthDown,
 			State:                 UndefinedState.String(),
@@ -599,10 +599,10 @@ func (m *Manager) GetCandidateReplicaCount() int {
 	cfg, err := m.config()
 	if err != nil {
 		log.Errorf("get schedulerConfig err:%s", err.Error())
-		return 0
+		return seedReplicaCount
 	}
 
-	return cfg.CandidateReplicas
+	return seedReplicaCount + cfg.CandidateReplicas
 }
 
 // GetAssetRecordInfo get the asset record info for cid

@@ -45,6 +45,7 @@ func (c *Client) StateGetRandomnessFromBeacon() (abi.Randomness, error) {
 	}
 
 	fmt.Println("height:", ts.Height())
+	// c.cli.ClientImport()
 
 	return c.cli.StateGetRandomnessFromBeacon(context.Background(), crypto.DomainSeparationTag_WindowedPoStChallengeSeed, ts.Height(), nil, types.NewTipSetKey())
 }

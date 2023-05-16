@@ -36,6 +36,7 @@ func (b *ValidatableGroup) divideNodesToAverage(maxAverage, minAverage float64) 
 		}
 
 		if bwUp >= minReduce {
+			out = make(map[string]float64)
 			out[nodeID] = bwUp
 			return
 		}
@@ -47,7 +48,6 @@ func (b *ValidatableGroup) divideNodesToAverage(maxAverage, minAverage float64) 
 		}
 
 		if tempBwUp > maxReduce {
-			// TODO too much will be reduce here
 			return
 		}
 	}

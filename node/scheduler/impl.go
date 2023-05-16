@@ -10,6 +10,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net"
 	"time"
 
@@ -17,6 +19,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	"github.com/Filecoin-Titan/titan/node/scheduler/nat"
 	"github.com/Filecoin-Titan/titan/node/scheduler/validation"
+	"github.com/Filecoin-Titan/titan/node/scheduler/workload"
 	"github.com/google/uuid"
 
 	"go.uber.org/fx"
@@ -56,6 +59,7 @@ type Scheduler struct {
 	SchedulerCfg           *config.SchedulerCfg
 	SetSchedulerConfigFunc dtypes.SetSchedulerConfigFunc
 	GetSchedulerConfigFunc dtypes.GetSchedulerConfigFunc
+	WorkloadManager        *workload.Manager
 
 	PrivateKey *rsa.PrivateKey
 }
@@ -572,4 +576,126 @@ func (s *Scheduler) NodeKeepalive(ctx context.Context) (uuid.UUID, error) {
 	}
 
 	return uuid, err
+}
+
+// GetEdgeDownloadInfos finds edge download information for a given CID
+func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) (*types.EdgeDownloadInfoList, error) {
+	if cid == "" {
+		return nil, xerrors.New("cids is nil")
+	}
+
+	hash, err := cidutil.CIDToHash(cid)
+	if err != nil {
+		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
+	}
+
+	rows, err := s.NodeManager.LoadReplicasByHash(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
+	infos := make([]*types.EdgeDownloadInfo, 0)
+	tkPayloads := make([]*types.TokenPayload, 0)
+
+	for rows.Next() {
+		rInfo := &types.ReplicaInfo{}
+		err = rows.StructScan(rInfo)
+		if err != nil {
+			log.Errorf("replica StructScan err: %s", err.Error())
+			continue
+		}
+
+		if rInfo.IsCandidate {
+			continue
+		}
+
+		nodeID := rInfo.NodeID
+		eNode := s.NodeManager.GetEdgeNode(nodeID)
+		if eNode == nil {
+			continue
+		}
+
+		token, tkPayload, err := eNode.Token(cid, titanRsa, s.NodeManager.PrivateKey)
+		if err != nil {
+			continue
+		}
+		tkPayloads = append(tkPayloads, tkPayload)
+
+		info := &types.EdgeDownloadInfo{
+			Address: eNode.DownloadAddr(),
+			NodeID:  nodeID,
+			Tk:      token,
+			NatType: eNode.NATType,
+		}
+		infos = append(infos, info)
+	}
+
+	if len(infos) == 0 {
+		return nil, nil
+	}
+
+	if len(tkPayloads) > 0 {
+		if err = s.NodeManager.SaveTokenPayload(tkPayloads); err != nil {
+			return nil, err
+		}
+	}
+
+	pk, err := s.GetSchedulerPublicKey(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := &types.EdgeDownloadInfoList{
+		Infos:        infos,
+		SchedulerURL: s.SchedulerCfg.ExternalURL,
+		SchedulerKey: pk,
+	}
+
+	return ret, nil
+}
+
+// SubmitUserWorkloadReport submits report of workload for User Asset Download
+func (s *Scheduler) SubmitUserWorkloadReport(ctx context.Context, r io.Reader) error {
+	cipherText, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+
+	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
+	data, err := titanRsa.Decrypt(cipherText, s.PrivateKey)
+	if err != nil {
+		return xerrors.Errorf("decrypt error: %w", err)
+	}
+
+	return s.WorkloadManager.HandleUserWorkload(data)
+}
+
+// SubmitNodeWorkloadReport submits report of workload for node Asset Download
+func (s *Scheduler) SubmitNodeWorkloadReport(ctx context.Context, r io.Reader) error {
+	nodeID := handler.GetNodeID(ctx)
+	node := s.NodeManager.GetNode(nodeID)
+	if node == nil {
+		return fmt.Errorf("node %s not exists", nodeID)
+	}
+
+	report := &types.NodeWorkloadReport{}
+	dec := gob.NewDecoder(r)
+	err := dec.Decode(report)
+	if err != nil {
+		return xerrors.Errorf("decode data to NodeWorkloadReport error: %w", err)
+	}
+
+	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
+	if err = titanRsa.VerifySign(node.PublicKey(), report.Sign, report.CipherText); err != nil {
+		return xerrors.Errorf("verify sign error: %w", err)
+	}
+
+	data, err := titanRsa.Decrypt(report.CipherText, s.PrivateKey)
+	if err != nil {
+		return xerrors.Errorf("decrypt error: %w", err)
+	}
+
+	return s.WorkloadManager.HandleNodeWorkload(data, nodeID)
 }

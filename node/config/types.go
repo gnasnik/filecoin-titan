@@ -108,6 +108,8 @@ type SchedulerCfg struct {
 	ValidatorBaseBwDn int
 	// Increased profit after node validation passes
 	ValidationProfit float64
+	// Increased profit after node workload passes
+	WorkloadProfit float64
 	// ElectionCycle cycle (Unit:day)
 	ElectionCycle int
 	// Node score level scale

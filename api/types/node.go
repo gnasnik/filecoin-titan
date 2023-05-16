@@ -222,7 +222,7 @@ type ValidationResultInfo struct {
 	EndTime     time.Time        `db:"end_time"`
 	Profit      float64          `db:"profit"`
 	Processed   bool             `db:"processed"`
-	Msg         string
+	Msg         string           `db:"msg"`
 
 	UploadTraffic float64 `db:"upload_traffic"`
 }
@@ -233,7 +233,7 @@ type ValidationStatus int
 const (
 	// ValidationStatusCreate  is the initial validation status when the validation process starts.
 	ValidationStatusCreate ValidationStatus = iota
-	// ValidationStatusSuccess is the validation status when the validation is successful.
+	// ValidationStatusSuccess is the validation status when the validation is success.
 	ValidationStatusSuccess
 	// ValidationStatusCancel is the validation status when the validation is canceled.
 	ValidationStatusCancel
@@ -242,7 +242,7 @@ const (
 
 	// ValidationStatusNodeTimeOut is the validation status when the node times out.
 	ValidationStatusNodeTimeOut
-	// ValidationStatusValidateFail is the validation status when the validation fails.
+	// ValidationStatusValidateFail is the validation status when the validation fail.
 	ValidationStatusValidateFail
 
 	// Validator error
@@ -264,13 +264,14 @@ const (
 
 // TokenPayload payload of token
 type TokenPayload struct {
-	ID         string    `db:"token_id"`
-	NodeID     string    `db:"node_id"`
-	AssetCID   string    `db:"asset_id"`
-	ClientID   string    `db:"client_id"`
-	LimitRate  int64     `db:"limit_rate"`
-	CreateTime time.Time `db:"create_time"`
-	Expiration time.Time `db:"expiration"`
+	ID         string         `db:"token_id"`
+	NodeID     string         `db:"node_id"`
+	AssetCID   string         `db:"asset_id"`
+	ClientID   string         `db:"client_id"`
+	LimitRate  int64          `db:"limit_rate"`
+	CreateTime time.Time      `db:"create_time"`
+	Expiration time.Time      `db:"expiration"`
+	Status     WorkloadStatus `db:"status"`
 }
 
 // Token access download asset
@@ -288,6 +289,18 @@ type Workload struct {
 	StartTime     int64
 	EndTime       int64
 }
+
+// WorkloadStatus Workload Status
+type WorkloadStatus int
+
+const (
+	// WorkloadStatusCreate is the initial workload status when the workload process starts.
+	WorkloadStatusCreate WorkloadStatus = iota
+	// WorkloadStatusSucceeded is the workload status when the workload is succeeded.
+	WorkloadStatusSucceeded
+	// WorkloadStatusFailed is the workload status when the workload is failed.
+	WorkloadStatusFailed
+)
 
 type WorkloadReport struct {
 	TokenID  string

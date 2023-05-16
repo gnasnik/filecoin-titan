@@ -68,6 +68,7 @@ var cValidationResultsTable = `
 	    end_time      DATETIME     DEFAULT NULL,
 		profit        FLOAT        DEFAULT 0,
 		processed     BOOLEAN,
+		msg           VARCHAR(128) DEFAULT '',
 		PRIMARY KEY (id),
 	    KEY round_node (round_id, node_id)
     ) ENGINE=InnoDB COMMENT='Validation result records';`
@@ -142,6 +143,7 @@ var cWorkloadTable = `
 		expiration      DATETIME     NOT NULL,
 		client_workload BLOB ,
 		node_workload   BLOB ,
+		status          TINYINT      DEFAULT 0,
 		PRIMARY KEY (token_id)
 	) ENGINE=InnoDB COMMENT='workload report';`
 

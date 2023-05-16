@@ -107,6 +107,7 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		ValidatorRatio:     1,
 		ValidatorBaseBwDn:  100,
 		ValidationProfit:   1,
+		WorkloadProfit:     5,
 		ElectionCycle:      5,
 		NodeScoreLevel: map[string][]int{
 			"A": {90, 100},

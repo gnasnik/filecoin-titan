@@ -146,7 +146,6 @@ func (n *SQLDB) LoadAssetReplicas(hash string) ([]*types.ReplicaInfo, error) {
 
 // LoadSucceededReplicaCount retrieves the succeeded replica count
 func (n *SQLDB) LoadSucceededReplicaCount() (int, error) {
-	// TODO Initialize to cache
 	query := fmt.Sprintf(`SELECT count(hash) FROM %s WHERE status=?`, replicaInfoTable)
 
 	var count int

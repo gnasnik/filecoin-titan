@@ -55,7 +55,7 @@ func (n *SQLDB) LoadNodeValidationInfo(roundID, nodeID string) (*types.Validatio
 // UpdateValidationResultInfo updates the validation result information.
 func (n *SQLDB) UpdateValidationResultInfo(info *types.ValidationResultInfo) error {
 	if info.Status == types.ValidationStatusSuccess {
-		query := fmt.Sprintf(`UPDATE %s SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW(), profit=:profit WHERE round_id=:round_id AND node_id=:node_id`, validationResultTable)
+		query := fmt.Sprintf(`UPDATE %s SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW(), profit=:profit, msg=:msg WHERE round_id=:round_id AND node_id=:node_id`, validationResultTable)
 		_, err := n.db.NamedExec(query, info)
 		return err
 	}
@@ -74,7 +74,6 @@ func (n *SQLDB) UpdateValidationResultsTimeout(roundID string) error {
 
 // LoadValidationResultInfos load validation results.
 func (n *SQLDB) LoadValidationResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidationResultRsp, error) {
-	// TODO problematic from web
 	res := new(types.ListValidationResultRsp)
 	var infos []types.ValidationResultInfo
 	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM %s WHERE start_time between ? and ? order by start_time asc  LIMIT ?,? ", validationResultTable)
@@ -457,6 +456,79 @@ func (n *SQLDB) UpdateWorkloadReport(tokenID string, isClient bool, workloads []
 
 	_, err := n.db.Exec(query, workloads, tokenID)
 	return err
+}
+
+// LoadWorkloadResults Load unprocessed workload results
+func (n *SQLDB) LoadWorkloadResults(limit int) (*sqlx.Rows, error) {
+	sQuery := fmt.Sprintf(`SELECT token_id, node_id, client_id, asset_id, limit_rate, create_time, expiration FROM %s WHERE status=? AND expiration<? LIMIT ?`, workloadReportTable)
+	return n.db.QueryxContext(context.Background(), sQuery, types.WorkloadStatusCreate, time.Now(), limit)
+}
+
+// LoadWorkloads load node and client workload
+func (n *SQLDB) LoadWorkloads(tokenID string) ([]byte, []byte, error) {
+	query := fmt.Sprintf(`SELECT node_workload,client_workload FROM %s WHERE token_id=?`, workloadReportTable)
+
+	ws := map[string][]byte{
+		"node_workload":   {},
+		"client_workload": {},
+	}
+
+	err := n.db.Get(&ws, query, tokenID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil, nil
+		}
+		return nil, nil, err
+	}
+	return ws["node_workload"], ws["client_workload"], nil
+}
+
+// UpdateNodeProfitsByWorkloadResult Update the gain value of the node, and set the processed flag to the workload record
+func (n *SQLDB) UpdateNodeProfitsByWorkloadResult(sIDs map[string]types.WorkloadStatus, nodeProfits map[string]float64) error {
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = tx.Rollback()
+		if err != nil && err != sql.ErrTxDone {
+			log.Errorf("Rollback err:%s", err.Error())
+		}
+	}()
+
+	for tokenID, status := range sIDs {
+		// update workload info
+		query := fmt.Sprintf(`UPDATE %s SET status=? WHERE token_id=?`, workloadReportTable)
+		_, err = tx.Exec(query, status, tokenID)
+		if err != nil {
+			return err
+		}
+	}
+
+	for nodeID, profit := range nodeProfits {
+		// update node profit
+		query := fmt.Sprintf(`UPDATE %s SET profit=profit+? WHERE node_id=?`, nodeInfoTable)
+		_, err = tx.Exec(query, profit, nodeID)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Commit
+	return tx.Commit()
+}
+
+// LoadWorkloadInfo load workload info
+func (n *SQLDB) LoadWorkloadInfo(tokenID string) (*types.TokenPayload, error) {
+	query := fmt.Sprintf(`SELECT token_id, node_id, client_id, asset_id, limit_rate, create_time, expiration, status FROM %s WHERE token_id=?`, workloadReportTable)
+	var tkPayload types.TokenPayload
+	err := n.db.Get(&tkPayload, query, tokenID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tkPayload, nil
 }
 
 func (n *SQLDB) LoadTokenPayloadAndWorkloads(tokenID string, isClient bool) (*types.TokenPayload, []byte, error) {

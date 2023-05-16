@@ -75,7 +75,7 @@ type Manager struct {
 
 // NewManager return new node manager instance
 func NewManager(nodeMgr *node.Manager, assetMgr *assets.Manager, configFunc dtypes.GetSchedulerConfigFunc, p *pubsub.PubSub) *Manager {
-	nodeManager := &Manager{
+	manager := &Manager{
 		nodeMgr:       nodeMgr,
 		assetMgr:      assetMgr,
 		config:        configFunc,
@@ -85,7 +85,7 @@ func NewManager(nodeMgr *node.Manager, assetMgr *assets.Manager, configFunc dtyp
 		notify:        p,
 	}
 
-	return nodeManager
+	return manager
 }
 
 // Start start validate and elect task

@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
-	"github.com/Filecoin-Titan/titan/lib/etcdcli"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	"github.com/filecoin-project/pubsub"
 	"github.com/google/uuid"
 	"golang.org/x/xerrors"
 
 	"github.com/Filecoin-Titan/titan/node/scheduler/db"
+	"github.com/Filecoin-Titan/titan/node/scheduler/leadership"
 	logging "github.com/ipfs/go-log/v2"
 )
 
@@ -43,27 +43,27 @@ type Manager struct {
 	Candidates     int // online candidate node count
 	weightMgr      *weightManager
 	config         dtypes.GetSchedulerConfigFunc
-	etcdcli        *etcdcli.Client
 	notify         *pubsub.PubSub
 	*db.SQLDB
 	*rsa.PrivateKey // scheduler privateKey
 	dtypes.ServerID // scheduler server id
+	leadershipMgr   *leadership.Manager
 }
 
 // NewManager creates a new instance of the node manager
-func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb *pubsub.PubSub, ec *etcdcli.Client, config dtypes.GetSchedulerConfigFunc) *Manager {
+func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb *pubsub.PubSub, config dtypes.GetSchedulerConfigFunc, lmgr *leadership.Manager) *Manager {
 	nodeManager := &Manager{
-		SQLDB:      sdb,
-		ServerID:   serverID,
-		PrivateKey: pk,
-		notify:     pb,
-		etcdcli:    ec,
-		config:     config,
-		weightMgr:  newWeightManager(config),
+		SQLDB:         sdb,
+		ServerID:      serverID,
+		PrivateKey:    pk,
+		notify:        pb,
+		config:        config,
+		weightMgr:     newWeightManager(config),
+		leadershipMgr: lmgr,
 	}
 
 	go nodeManager.startNodeKeepaliveTimer()
-	// go nodeManager.startHandleValidationResultTimer()
+	go nodeManager.startNodeTimer()
 
 	return nodeManager
 }
@@ -102,7 +102,7 @@ func (m *Manager) startNodeTimer() {
 		log.Debugln("start node timer...")
 
 		m.redistributeNodeSelectWeights()
-		m.handleValidationResults()
+		// m.handleValidationResults()
 
 		timer.Reset(oneDay)
 	}
@@ -274,54 +274,25 @@ func (m *Manager) NewNodeID(nType types.NodeType) (string, error) {
 }
 
 func (m *Manager) handleValidationResults() {
-	// TODO Need to save the leaseID to find the session next time
-	leaseID, err := m.etcdcli.AcquireMasterLock(types.RunningNodeType.String())
-	if err != nil {
-		log.Errorf("handleValidationResults SetMasterScheduler err:%s", err.Error())
+	if !m.leadershipMgr.RequestAndBecomeMaster() {
 		return
 	}
 
 	defer func() {
-		log.Infoln("handleValidationResults done")
-
-		err = m.etcdcli.ReleaseMasterLock(leaseID, types.RunningNodeType.String())
-		if err != nil {
-			log.Errorf("RemoveMasterScheduler err:%s", err.Error())
-		}
+		log.Infoln("handleValidationResults end")
 	}()
 
-	log.Infof("handleValidationResults %s", m.ServerID)
+	log.Infoln("handleValidationResults start")
 
-	mTime := time.Now().Add(-vResultDay)
+	maxTime := time.Now().Add(-vResultDay)
 
 	// do handle validation result
 	for {
-		rows, err := m.LoadValidationResults(mTime, vResultLimit)
+		ids, nodeProfits, err := m.loadResults(maxTime)
 		if err != nil {
-			log.Errorf("LoadValidationResults err:%s", err.Error())
+			log.Errorf("loadResults err:%s", err.Error())
 			return
 		}
-
-		ids := make([]int, 0)
-		nodeProfits := make(map[string]float64)
-
-		for rows.Next() {
-			info := &types.ValidationResultInfo{}
-			err = rows.StructScan(info)
-			if err != nil {
-				log.Errorf("ValidationResultInfo StructScan err: %s", err.Error())
-				continue
-			}
-
-			ids = append(ids, info.ID)
-
-			if info.Profit == 0 {
-				continue
-			}
-
-			nodeProfits[info.NodeID] += info.Profit
-		}
-		rows.Close()
 
 		if len(ids) == 0 {
 			return
@@ -330,8 +301,59 @@ func (m *Manager) handleValidationResults() {
 		err = m.UpdateNodeProfitsByValidationResult(ids, nodeProfits)
 		if err != nil {
 			log.Errorf("UpdateNodeProfitsByValidationResult err:%s", err.Error())
+			return
 		}
 	}
+}
+
+func (m *Manager) loadResults(maxTime time.Time) ([]int, map[string]float64, error) {
+	rows, err := m.LoadValidationResults(maxTime, vResultLimit)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+
+	ids := make([]int, 0)
+	nodeProfits := make(map[string]float64)
+
+	for rows.Next() {
+		vInfo := &types.ValidationResultInfo{}
+		err = rows.StructScan(vInfo)
+		if err != nil {
+			log.Errorf("loadResults StructScan err: %s", err.Error())
+			continue
+		}
+
+		ids = append(ids, vInfo.ID)
+		if vInfo.Profit == 0 {
+			continue
+		}
+
+		if vInfo.Status == types.ValidationStatusCancel {
+			tokenID := vInfo.Msg
+			wInfo, err := m.LoadWorkloadInfo(tokenID)
+			if err != nil {
+				vInfo.Profit = 0
+			}
+
+			if wInfo.Status != types.WorkloadStatusSucceeded {
+				vInfo.Profit = 0
+			}
+
+			// check time
+			if wInfo.CreateTime.After(vInfo.EndTime) {
+				vInfo.Profit = 0
+			}
+
+			if wInfo.Expiration.Before(vInfo.StartTime) {
+				vInfo.Profit = 0
+			}
+		}
+
+		nodeProfits[vInfo.NodeID] += vInfo.Profit
+	}
+
+	return ids, nodeProfits, nil
 }
 
 func (m *Manager) redistributeNodeSelectWeights() {

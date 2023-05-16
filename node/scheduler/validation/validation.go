@@ -200,6 +200,7 @@ func (m *Manager) HandleResult(vr *api.ValidationResult) {
 
 	if vr.IsCancel {
 		status = types.ValidationStatusCancel
+		profit = m.profit
 		return
 	}
 

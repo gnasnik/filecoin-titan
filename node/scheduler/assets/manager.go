@@ -326,7 +326,7 @@ func (m *Manager) RemoveAsset(cid, hash, userID string) error {
 		return xerrors.Errorf("not found asset %s", hash)
 	}
 
-	return m.assetStateMachines.Send(AssetHash(hash), AssetForceState{State: Remove})
+	return m.assetStateMachines.Send(AssetHash(hash), AssetForceState{State: Remove, Requester: userID})
 }
 
 // updateAssetPullResults updates asset pull results

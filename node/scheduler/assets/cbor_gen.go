@@ -26,7 +26,7 @@ func (t *AssetPullingInfo) MarshalCBOR(w io.Writer) error {
 
 	cw := cbg.NewCborWriter(w)
 
-	if _, err := cw.Write([]byte{174}); err != nil {
+	if _, err := cw.Write([]byte{175}); err != nil {
 		return err
 	}
 
@@ -141,6 +141,29 @@ func (t *AssetPullingInfo) MarshalCBOR(w io.Writer) error {
 		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.Blocks-1)); err != nil {
 			return err
 		}
+	}
+
+	// t.Requester (string) (string)
+	if len("Requester") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"Requester\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("Requester"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("Requester")); err != nil {
+		return err
+	}
+
+	if len(t.Requester) > cbg.MaxLength {
+		return xerrors.Errorf("Value in field t.Requester was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Requester))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string(t.Requester)); err != nil {
+		return err
 	}
 
 	// t.RetryCount (int64) (int64)
@@ -485,6 +508,17 @@ func (t *AssetPullingInfo) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.Blocks = int64(extraI)
+			}
+			// t.Requester (string) (string)
+		case "Requester":
+
+			{
+				sval, err := cbg.ReadString(cr)
+				if err != nil {
+					return err
+				}
+
+				t.Requester = string(sval)
 			}
 			// t.RetryCount (int64) (int64)
 		case "RetryCount":

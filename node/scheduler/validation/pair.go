@@ -8,6 +8,11 @@ import (
 	"github.com/docker/go-units"
 )
 
+const (
+	bandwidthRatio = 0.7                    // The ratio of the total upstream bandwidth on edge nodes to the downstream bandwidth on validation nodes.
+	toleranceBwUp  = float64(5 * units.MiB) // The tolerance for uplink bandwidth deviation per group, set to 5M.
+)
+
 // reduces the ValidatableGroup's bandwidth to an value between the min and max averages
 func (b *ValidatableGroup) divideNodesToAverage(maxAverage, minAverage float64) (out map[string]float64) {
 	out = make(map[string]float64)

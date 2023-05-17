@@ -9,17 +9,12 @@ import (
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	"github.com/Filecoin-Titan/titan/node/scheduler/assets"
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
-	"github.com/docker/go-units"
 	"github.com/filecoin-project/pubsub"
 	logging "github.com/ipfs/go-log/v2"
 )
 
 var log = logging.Logger("validation")
 
-const (
-	bandwidthRatio = 0.7                    // The ratio of the total upstream bandwidth on edge nodes to the downstream bandwidth on validation nodes.
-	toleranceBwUp  = float64(5 * units.MiB) // The tolerance for uplink bandwidth deviation per group, set to 5M.
-)
 
 // VWindow represents a validation window that contains a validator id and validatable node list.
 type VWindow struct {

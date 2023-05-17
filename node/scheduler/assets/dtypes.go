@@ -38,6 +38,8 @@ type AssetPullingInfo struct {
 
 	RetryCount        int64
 	ReplenishReplicas int64
+
+	Requester string
 }
 
 // ToAssetRecord converts AssetPullingInfo to types.AssetRecord

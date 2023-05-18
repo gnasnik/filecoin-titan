@@ -36,7 +36,7 @@ const (
 	validationResultTable = "validation_result"
 	assetsViewTable       = "asset_view"
 	bucketTable           = "bucket"
-	workloadReportTable   = "workload_report"
+	workloadRecordTable   = "workload_record"
 	assetEventsTable      = "asset_events"
 
 	// Default limits for loading table entries.
@@ -79,7 +79,7 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 	tx.MustExec(fmt.Sprintf(cValidatorsTable, validatorsTable))
 	tx.MustExec(fmt.Sprintf(cAssetViewTable, assetsViewTable))
 	tx.MustExec(fmt.Sprintf(cBucketTable, bucketTable))
-	tx.MustExec(fmt.Sprintf(cWorkloadTable, workloadReportTable))
+	tx.MustExec(fmt.Sprintf(cWorkloadTable, workloadRecordTable))
 	tx.MustExec(fmt.Sprintf(cAssetEventTable, assetEventsTable))
 
 	return tx.Commit()

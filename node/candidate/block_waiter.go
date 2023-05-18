@@ -64,8 +64,8 @@ func (bw *blockWaiter) wait() {
 			log.Errorf("send validate result %s", err.Error())
 		}
 
-		log.Debugf("validate %s %d block, bandwidth:%f, cost time:%d, IsTimeout:%v, duration:%d, size:%d, randCount:%d, isCancel:%t",
-			bw.result.NodeID, len(bw.result.Cids), bw.result.Bandwidth, bw.result.CostTime, bw.result.IsTimeout, bw.duration, size, bw.result.RandomCount, bw.result.IsCancel)
+		log.Debugf("validate %s %d block, bandwidth:%f, cost time:%d, IsTimeout:%v, duration:%d, size:%d, randCount:%d, isCancel:%t, token:%s",
+			bw.result.NodeID, len(bw.result.Cids), bw.result.Bandwidth, bw.result.CostTime, bw.result.IsTimeout, bw.duration, size, bw.result.RandomCount, bw.result.IsCancel, bw.result.Token)
 	}()
 
 	for {
@@ -77,6 +77,7 @@ func (bw *blockWaiter) wait() {
 		switch tcpMsg.msgType {
 		case api.TCPMsgTypeCancel:
 			bw.result.IsCancel = true
+			bw.result.Token = string(tcpMsg.msg)
 		case api.TCPMsgTypeBlock:
 			if tcpMsg.length > 0 {
 				if cid, err := cidFromData(tcpMsg.msg); err == nil {

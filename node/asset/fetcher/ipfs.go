@@ -33,7 +33,7 @@ func NewIPFSClient(ipfsAPIURL string) *IPFSClient {
 }
 
 // FetchBlocks retrieves blocks from IPFSClient using the provided context, CIDs, and download info
-func (ipfs *IPFSClient) FetchBlocks(ctx context.Context, cids []string, downloadSources []*types.CandidateDownloadInfo) ([]blocks.Block, error) {
+func (ipfs *IPFSClient) FetchBlocks(ctx context.Context, cids []string, downloadSources []*types.CandidateDownloadInfo) ([]*types.WorkloadReport, []blocks.Block, error) {
 	return ipfs.retrieveBlocks(ctx, cids)
 }
 
@@ -53,7 +53,7 @@ func (ipfs *IPFSClient) retrieveBlock(ctx context.Context, cidStr string) (block
 }
 
 // retrieveBlocks gets multiple blocks from IPFSClient using the provided context and CIDs
-func (ipfs *IPFSClient) retrieveBlocks(ctx context.Context, cids []string) ([]blocks.Block, error) {
+func (ipfs *IPFSClient) retrieveBlocks(ctx context.Context, cids []string) ([]*types.WorkloadReport, []blocks.Block, error) {
 	blks := make([]blocks.Block, 0, len(cids))
 	blksLock := &sync.Mutex{}
 
@@ -79,10 +79,10 @@ func (ipfs *IPFSClient) retrieveBlocks(ctx context.Context, cids []string) ([]bl
 	wg.Wait()
 
 	if errors.Is(ctx.Err(), context.Canceled) {
-		return blks, ctx.Err()
+		return nil, blks, ctx.Err()
 	}
 
-	return blks, nil
+	return nil, blks, nil
 }
 
 // createBlock creates a new block with the specified CID and data

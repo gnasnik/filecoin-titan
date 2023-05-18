@@ -1,7 +1,9 @@
 package asset
 
 import (
+	"bytes"
 	"context"
+	"crypto"
 	"fmt"
 	"math/rand"
 	"os"
@@ -14,6 +16,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/asset/fetcher"
 	titanindex "github.com/Filecoin-Titan/titan/node/asset/index"
 	"github.com/Filecoin-Titan/titan/node/asset/storage"
+	titanrsa "github.com/Filecoin-Titan/titan/node/rsa"
 	validate "github.com/Filecoin-Titan/titan/node/validation"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
@@ -262,6 +265,10 @@ func (m *Manager) onPullAssetFinish(puller *assetPuller) {
 		if err := m.savePuller(puller); err != nil {
 			log.Errorf("save puller error:%s", err.Error())
 		}
+	}
+
+	if err := m.submitPullerWorkloadReport(puller); err != nil {
+		log.Errorf("submitPullerWorkloadReport error %s", err.Error())
 	}
 }
 
@@ -582,4 +589,34 @@ func (m *Manager) getNodes(ctx context.Context, bs *blockstore.ReadOnly, links [
 	}
 
 	return nil
+}
+
+func (m *Manager) submitPullerWorkloadReport(puller *assetPuller) error {
+	if types.RunningNodeType != types.NodeEdge {
+		return nil
+	}
+
+	buf, err := puller.encodeWorkloadReports()
+	if err != nil {
+		return err
+	}
+
+	// TODO: update and get scheduler publicKey from same place
+	pem, err := m.GetSchedulerPublicKey(context.Background())
+	if err != nil {
+		return err
+	}
+
+	publicKey, err := titanrsa.Pem2PublicKey([]byte(pem))
+	if err != nil {
+		return err
+	}
+
+	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
+	cipherText, err := titanRsa.Encrypt(buf, publicKey)
+	if err != nil {
+		return err
+	}
+
+	return m.SubmitUserWorkloadReport(context.Background(), bytes.NewBuffer(cipherText))
 }

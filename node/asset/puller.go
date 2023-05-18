@@ -1,7 +1,9 @@
 package asset
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
 	"fmt"
 	"time"
 
@@ -17,6 +19,11 @@ type pulledResult struct {
 	nextLayerCIDs []string
 	linksSize     uint64
 	doneSize      uint64
+}
+
+type workloadReport struct {
+	*types.WorkloadReport
+	count int
 }
 
 // assetPuller represents a struct that is responsible for downloading and managing the progress of an asset pull operation
@@ -39,6 +46,8 @@ type assetPuller struct {
 	parallel int
 	timeout  int
 	retry    int
+
+	workloadReports map[string]*workloadReport
 }
 
 type pullerOptions struct {
@@ -147,12 +156,13 @@ func (ap *assetPuller) pullBlocks(cids []string) (*pulledResult, error) {
 
 	ap.cancel = cancel
 
-	blks, err := ap.bFetcher.FetchBlocks(ctx, cids, ap.downloadSources)
+	workloadReports, blks, err := ap.bFetcher.FetchBlocks(ctx, cids, ap.downloadSources)
 	if err != nil {
 		log.Errorf("fetch blocks err: %s", err.Error())
 		return nil, err
 	}
 
+	ap.mergeWorkloadReports(workloadReports)
 	// retry
 	retryCount := 0
 	cidMap := ap.toMap(cids)
@@ -234,11 +244,12 @@ func (ap *assetPuller) retryFetchBlocks(cids []string) ([]blocks.Block, error) {
 
 	ap.cancel = cancel
 
-	blks, err := ap.bFetcher.FetchBlocks(ctx, cids, ap.downloadSources)
+	workloadReports, blks, err := ap.bFetcher.FetchBlocks(ctx, cids, ap.downloadSources)
 	if err != nil {
 		log.Errorf("retry fetch blocks err %s", err.Error())
 		return nil, err
 	}
+	ap.mergeWorkloadReports(workloadReports)
 	return blks, nil
 }
 
@@ -312,4 +323,55 @@ func (ap *assetPuller) getAssetProgress() *types.AssetPullProgress {
 		Size:            int64(ap.totalSize),
 		DoneSize:        int64(ap.doneSize),
 	}
+}
+
+func (ap *assetPuller) mergeWorkloadReports(reports []*types.WorkloadReport) {
+	if ap.workloadReports == nil {
+		ap.workloadReports = make(map[string]*workloadReport)
+	}
+
+	for _, report := range reports {
+		rp, ok := ap.workloadReports[report.TokenID]
+		if !ok {
+			rp = &workloadReport{WorkloadReport: &types.WorkloadReport{TokenID: report.TokenID, NodeID: report.NodeID, Workload: &types.Workload{}}}
+		}
+		rp.count++
+		rp.Workload.DownloadSpeed += report.Workload.DownloadSpeed
+		rp.Workload.DownloadSize += report.Workload.DownloadSize
+
+		if rp.Workload.StartTime == 0 || report.Workload.StartTime < rp.Workload.StartTime {
+			rp.Workload.StartTime = report.Workload.StartTime
+		}
+
+		if rp.Workload.EndTime < report.Workload.EndTime {
+			rp.Workload.EndTime = report.Workload.EndTime
+		}
+
+		ap.workloadReports[report.TokenID] = rp
+
+	}
+}
+
+func (ap *assetPuller) encodeWorkloadReports() ([]byte, error) {
+	if len(ap.workloadReports) == 0 {
+		return nil, fmt.Errorf("workload report is empty")
+	}
+
+	reports := make([]*types.WorkloadReport, 0, len(ap.workloadReports))
+	for _, report := range ap.workloadReports {
+		workloadReport := report.WorkloadReport
+		if report.count > 0 {
+			workloadReport.Workload.DownloadSpeed = workloadReport.Workload.DownloadSpeed / int64(report.count)
+		}
+		reports = append(reports, workloadReport)
+	}
+
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	err := enc.Encode(reports)
+	if err != nil {
+		return nil, err
+	}
+
+	return buffer.Bytes(), nil
 }

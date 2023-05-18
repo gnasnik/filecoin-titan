@@ -439,48 +439,36 @@ func (n *SQLDB) DeleteBucket(bucketID string) error {
 	return err
 }
 
-func (n *SQLDB) SaveTokenPayload(tks []*types.TokenPayload) error {
+func (n *SQLDB) SaveWorkloadRecord(records []*types.WorkloadRecord) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (token_id, node_id, client_id, asset_id, limit_rate, create_time, expiration) 
-				VALUES (:token_id, :node_id, :client_id, :asset_id, :limit_rate, :create_time, :expiration)`, workloadReportTable)
+		`INSERT INTO %s (token_id, node_id, client_id, asset_id, limit_rate, create_time, expiration, client_workload, node_workload, status) 
+				VALUES (:token_id, :node_id, :client_id, :asset_id, :limit_rate, :create_time, :expiration, :client_workload, :node_workload, :status)`, workloadRecordTable)
 
-	_, err := n.db.NamedExec(query, tks)
+	_, err := n.db.NamedExec(query, records)
 	return err
 }
 
-func (n *SQLDB) UpdateWorkloadReport(tokenID string, isClient bool, workloads []byte) error {
-	query := fmt.Sprintf(`UPDATE %s SET node_workload=? WHERE token_id=?`, workloadReportTable)
-	if isClient {
-		query = fmt.Sprintf(`UPDATE %s SET client_workload=? WHERE token_id=?`, workloadReportTable)
+func (n *SQLDB) UpdateWorkloadRecord(record *types.WorkloadRecord) error {
+	query := fmt.Sprintf(`UPDATE %s SET client_workload=:client_workload, node_workload=:client_workload WHERE token_id=:token_id`, workloadRecordTable)
+	_, err := n.db.NamedExec(query, record)
+	return err
+}
+
+func (n *SQLDB) LoadWorkloadRecord(tokenID string) (*types.WorkloadRecord, error) {
+	query := fmt.Sprintf(`SELECT token_id, node_id, client_id, asset_id, limit_rate, create_time, expiration, client_workload, node_workload, status FROM %s WHERE token_id=?`, workloadRecordTable)
+	var record types.WorkloadRecord
+	err := n.db.Get(&record, query, tokenID)
+	if err != nil {
+		return nil, err
 	}
 
-	_, err := n.db.Exec(query, workloads, tokenID)
-	return err
+	return &record, nil
 }
 
 // LoadWorkloadResults Load unprocessed workload results
 func (n *SQLDB) LoadWorkloadResults(limit int) (*sqlx.Rows, error) {
-	sQuery := fmt.Sprintf(`SELECT token_id, node_id, client_id, asset_id, limit_rate, create_time, expiration FROM %s WHERE status=? AND expiration<? LIMIT ?`, workloadReportTable)
+	sQuery := fmt.Sprintf(`SELECT token_id, node_id, client_id, asset_id, limit_rate, create_time, expiration FROM %s WHERE status=? AND expiration<? LIMIT ?`, workloadRecordTable)
 	return n.db.QueryxContext(context.Background(), sQuery, types.WorkloadStatusCreate, time.Now(), limit)
-}
-
-// LoadWorkloads load node and client workload
-func (n *SQLDB) LoadWorkloads(tokenID string) ([]byte, []byte, error) {
-	query := fmt.Sprintf(`SELECT node_workload,client_workload FROM %s WHERE token_id=?`, workloadReportTable)
-
-	ws := map[string][]byte{
-		"node_workload":   {},
-		"client_workload": {},
-	}
-
-	err := n.db.Get(&ws, query, tokenID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil, nil
-		}
-		return nil, nil, err
-	}
-	return ws["node_workload"], ws["client_workload"], nil
 }
 
 // UpdateNodeProfitsByWorkloadResult Update the gain value of the node, and set the processed flag to the workload record
@@ -499,7 +487,7 @@ func (n *SQLDB) UpdateNodeProfitsByWorkloadResult(sIDs map[string]types.Workload
 
 	for tokenID, status := range sIDs {
 		// update workload info
-		query := fmt.Sprintf(`UPDATE %s SET status=? WHERE token_id=?`, workloadReportTable)
+		query := fmt.Sprintf(`UPDATE %s SET status=? WHERE token_id=?`, workloadRecordTable)
 		_, err = tx.Exec(query, status, tokenID)
 		if err != nil {
 			return err
@@ -517,41 +505,6 @@ func (n *SQLDB) UpdateNodeProfitsByWorkloadResult(sIDs map[string]types.Workload
 
 	// Commit
 	return tx.Commit()
-}
-
-// LoadWorkloadInfo load workload info
-func (n *SQLDB) LoadWorkloadInfo(tokenID string) (*types.TokenPayload, error) {
-	query := fmt.Sprintf(`SELECT token_id, node_id, client_id, asset_id, limit_rate, create_time, expiration, status FROM %s WHERE token_id=?`, workloadReportTable)
-	var tkPayload types.TokenPayload
-	err := n.db.Get(&tkPayload, query, tokenID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &tkPayload, nil
-}
-
-func (n *SQLDB) LoadTokenPayloadAndWorkloads(tokenID string, isClient bool) (*types.TokenPayload, []byte, error) {
-	query := fmt.Sprintf(`SELECT token_id, node_id, client_id, asset_id, limit_rate, create_time, expiration FROM %s WHERE token_id=?`, workloadReportTable)
-	var tkPayload types.TokenPayload
-	err := n.db.Get(&tkPayload, query, tokenID)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	query = fmt.Sprintf(`SELECT node_workload FROM %s WHERE token_id=?`, workloadReportTable)
-	if isClient {
-		query = fmt.Sprintf(`SELECT client_workload FROM %s WHERE token_id=?`, workloadReportTable)
-	}
-	var workload []byte
-	err = n.db.Get(&workload, query, tokenID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return &tkPayload, nil, nil
-		}
-		return nil, nil, err
-	}
-	return &tkPayload, workload, nil
 }
 
 // LoadValidationResults Load unprocessed validation results

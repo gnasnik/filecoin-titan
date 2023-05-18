@@ -122,6 +122,7 @@ type EdgeDownloadInfoList struct {
 
 // CandidateDownloadInfo represents download information for a candidate
 type CandidateDownloadInfo struct {
+	NodeID  string
 	Address string
 	Tk      *Token
 }
@@ -264,14 +265,13 @@ const (
 
 // TokenPayload payload of token
 type TokenPayload struct {
-	ID         string         `db:"token_id"`
-	NodeID     string         `db:"node_id"`
-	AssetCID   string         `db:"asset_id"`
-	ClientID   string         `db:"client_id"`
-	LimitRate  int64          `db:"limit_rate"`
-	CreateTime time.Time      `db:"create_time"`
-	Expiration time.Time      `db:"expiration"`
-	Status     WorkloadStatus `db:"status"`
+	ID         string    `db:"token_id"`
+	NodeID     string    `db:"node_id"`
+	AssetCID   string    `db:"asset_id"`
+	ClientID   string    `db:"client_id"`
+	LimitRate  int64     `db:"limit_rate"`
+	CreateTime time.Time `db:"create_time"`
+	Expiration time.Time `db:"expiration"`
 }
 
 // Token access download asset
@@ -307,6 +307,14 @@ type WorkloadReport struct {
 	ClientID string
 	NodeID   string
 	Workload *Workload
+}
+
+// WorkloadReportRecord use to store workloadReport
+type WorkloadRecord struct {
+	TokenPayload
+	Status         WorkloadStatus `db:"status"`
+	ClientWorkload []byte         `db:"client_workload"`
+	NodeWorkload   []byte         `db:"node_workload"`
 }
 
 type NodeWorkloadReport struct {

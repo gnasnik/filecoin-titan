@@ -10,7 +10,6 @@ import (
 	"mime"
 	"net/http"
 	"strings"
-	"sync/atomic"
 
 	"github.com/Filecoin-Titan/titan/api/types"
 	titanrsa "github.com/Filecoin-Titan/titan/node/rsa"
@@ -36,9 +35,9 @@ func (hs *HttpServer) getHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	atomic.AddUint32(&hs.downloadThreadCount, 1)
+	hs.tokens.Store(tkPayload.ID, struct{}{})
 	defer func() {
-		atomic.AddUint32(&hs.downloadThreadCount, ^uint32(0))
+		hs.tokens.Delete(tkPayload.ID)
 	}()
 
 	respFormat, formatParams, err := customResponseFormat(r)

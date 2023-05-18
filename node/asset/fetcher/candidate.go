@@ -36,7 +36,7 @@ func NewCandidateFetcher() *CandidateFetcher {
 }
 
 // FetchBlocks fetches blocks for the given cids and candidate download info
-func (c *CandidateFetcher) FetchBlocks(ctx context.Context, cids []string, dss []*types.CandidateDownloadInfo) ([]blocks.Block, error) {
+func (c *CandidateFetcher) FetchBlocks(ctx context.Context, cids []string, dss []*types.CandidateDownloadInfo) ([]*types.WorkloadReport, []blocks.Block, error) {
 	return c.retrieveBlocks(ctx, cids, dss)
 }
 
@@ -95,13 +95,14 @@ func (c *CandidateFetcher) fetchSingleBlock(ctx context.Context, downloadSource 
 }
 
 // retrieveBlocks retrieves multiple blocks using the given cids and candidate download info
-func (c *CandidateFetcher) retrieveBlocks(ctx context.Context, cids []string, dss []*types.CandidateDownloadInfo) ([]blocks.Block, error) {
+func (c *CandidateFetcher) retrieveBlocks(ctx context.Context, cids []string, dss []*types.CandidateDownloadInfo) ([]*types.WorkloadReport, []blocks.Block, error) {
 	if len(dss) == 0 {
-		return nil, fmt.Errorf("download infos can not empty")
+		return nil, nil, fmt.Errorf("download infos can not empty")
 	}
 
+	workloadReports := make([]*types.WorkloadReport, 0, len(cids))
 	blks := make([]blocks.Block, 0, len(cids))
-	blksLock := &sync.Mutex{}
+	lock := &sync.Mutex{}
 
 	var wg sync.WaitGroup
 
@@ -114,24 +115,35 @@ func (c *CandidateFetcher) retrieveBlocks(ctx context.Context, cids []string, ds
 
 		go func() {
 			defer wg.Done()
+			startTime := time.Now()
 			b, err := c.fetchSingleBlock(ctx, ds, cidStr)
 			if err != nil {
 				log.Errorf("fetch single block error:%s, cid:%s", err.Error(), cidStr)
 				return
 			}
 
-			blksLock.Lock()
+			downloadSpeed := float64(0)
+			duration := time.Since(startTime)
+			if duration > 0 {
+				downloadSpeed = float64(len(b.RawData())) / float64(duration) * float64(time.Second)
+			}
+
+			workload := &types.Workload{DownloadSpeed: int64(downloadSpeed), DownloadSize: int64(len(b.RawData())), StartTime: startTime.Unix(), EndTime: time.Now().Unix()}
+			workloadReport := &types.WorkloadReport{TokenID: ds.Tk.ID, NodeID: ds.NodeID, Workload: workload}
+
+			lock.Lock()
 			blks = append(blks, b)
-			blksLock.Unlock()
+			workloadReports = append(workloadReports, workloadReport)
+			lock.Unlock()
 		}()
 	}
 	wg.Wait()
 
 	if errors.Is(ctx.Err(), context.Canceled) {
-		return blks, ctx.Err()
+		return nil, blks, ctx.Err()
 	}
 
-	return blks, nil
+	return workloadReports, blks, nil
 }
 
 func encode(esc *types.Token) (*bytes.Buffer, error) {

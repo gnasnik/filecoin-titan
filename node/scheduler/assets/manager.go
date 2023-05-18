@@ -645,7 +645,7 @@ func (m *Manager) saveReplicaInformation(nodes map[string]*node.Node, hash strin
 // getDownloadSources gets download sources for a given CID
 func (m *Manager) getDownloadSources(cid string, nodes []string) []*types.CandidateDownloadInfo {
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	tkPayloads := make([]*types.TokenPayload, 0)
+	workloadRecords := make([]*types.WorkloadRecord, 0)
 	sources := make([]*types.CandidateDownloadInfo, 0)
 	for _, nodeID := range nodes {
 		cNode := m.nodeMgr.GetCandidateNode(nodeID)
@@ -657,9 +657,11 @@ func (m *Manager) getDownloadSources(cid string, nodes []string) []*types.Candid
 		if err != nil {
 			continue
 		}
-		tkPayloads = append(tkPayloads, tkPayload)
+		workloadRecord := &types.WorkloadRecord{TokenPayload: *tkPayload, Status: types.WorkloadStatusCreate}
+		workloadRecords = append(workloadRecords, workloadRecord)
 
 		source := &types.CandidateDownloadInfo{
+			NodeID:  nodeID,
 			Address: cNode.DownloadAddr(),
 			Tk:      token,
 		}
@@ -667,9 +669,9 @@ func (m *Manager) getDownloadSources(cid string, nodes []string) []*types.Candid
 		sources = append(sources, source)
 	}
 
-	if len(tkPayloads) > 0 {
-		if err := m.SaveTokenPayload(tkPayloads); err != nil {
-			log.Errorf("SaveTokenPayload error: %s", err.Error())
+	if len(workloadRecords) > 0 {
+		if err := m.SaveWorkloadRecord(workloadRecords); err != nil {
+			log.Errorf("SaveWorkloadRecord error: %s", err.Error())
 		}
 	}
 	return sources

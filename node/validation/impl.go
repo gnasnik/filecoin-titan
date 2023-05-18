@@ -16,9 +16,9 @@ import (
 var log = logging.Logger("validate")
 
 type Validation struct {
-	checker                 Checker
-	device                  *device.Device
-	downloadThreadCountFunc func() uint32
+	checker    Checker
+	device     *device.Device
+	firstToken func() string
 }
 
 type Checker interface {
@@ -47,8 +47,8 @@ func (v *Validation) ExecuteValidation(ctx context.Context, req *api.ValidateReq
 	return nil
 }
 
-func (v *Validation) SetFunc(fun func() uint32) {
-	v.downloadThreadCountFunc = fun
+func (v *Validation) SetFunc(fun func() string) {
+	v.firstToken = fun
 }
 
 // sendBlocks sends blocks over a TCP connection with rate limiting
@@ -86,9 +86,10 @@ func (v *Validation) sendBlocks(conn *net.TCPConn, req *api.ValidateReq, speedRa
 		default:
 		}
 
-		if v.downloadThreadCountFunc != nil && v.downloadThreadCountFunc() > 0 {
-			log.Debugf("user is downloading, cancel validation, download thread %d", v.downloadThreadCountFunc())
-			return sendData(conn, nil, api.TCPMsgTypeCancel, limiter)
+		token := v.firstToken()
+		if len(token) > 0 {
+			log.Debugf("user is downloading, cancel validation, token %d", token)
+			return sendData(conn, []byte(token), api.TCPMsgTypeCancel, limiter)
 		}
 
 		blk, err := asset.GetBlock(ctx)

@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	gopath "path"
+	"sync"
 
 	"github.com/Filecoin-Titan/titan/api"
 	titanrsa "github.com/Filecoin-Titan/titan/node/rsa"
@@ -25,26 +26,26 @@ import (
 )
 
 type Validation interface {
-	SetFunc(func() uint32)
+	SetFunc(func() string)
 }
 
 type HttpServer struct {
-	asset               Asset
-	scheduler           api.Scheduler
-	privateKey          *rsa.PrivateKey
-	schedulerPublicKey  *rsa.PublicKey
-	reporter            *reporter
-	validation          Validation
-	downloadThreadCount uint32
+	asset              Asset
+	scheduler          api.Scheduler
+	privateKey         *rsa.PrivateKey
+	schedulerPublicKey *rsa.PublicKey
+	reporter           *reporter
+	validation         Validation
+	tokens             *sync.Map
 }
 
 // NewHttpServer creates a new HttpServer with the given Asset, Scheduler, and RSA private key.
 func NewHttpServer(asset Asset, scheduler api.Scheduler, privateKey *rsa.PrivateKey, validation Validation) *HttpServer {
-	hs := &HttpServer{asset: asset, scheduler: scheduler, privateKey: privateKey, validation: validation}
+	hs := &HttpServer{asset: asset, scheduler: scheduler, privateKey: privateKey, validation: validation, tokens: &sync.Map{}}
 	hs.reporter = newReporter(hs)
 
 	if validation != nil {
-		validation.SetFunc(hs.DownloadThreadCount)
+		validation.SetFunc(hs.FirstToken)
 	}
 
 	return hs
@@ -67,8 +68,13 @@ func (hs *HttpServer) UpdateSchedulerPublicKey() error {
 }
 
 // GetDownloadThreadCount get download thread count of httpserver
-func (hs *HttpServer) DownloadThreadCount() uint32 {
-	return hs.downloadThreadCount
+func (hs *HttpServer) FirstToken() string {
+	token := ""
+	hs.tokens.Range(func(key, value interface{}) bool {
+		token = key.(string)
+		return false
+	})
+	return token
 }
 
 // resolvePath resolves an IPFS path to a ResolvedPath, given the asset CID.

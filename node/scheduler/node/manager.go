@@ -331,21 +331,21 @@ func (m *Manager) loadResults(maxTime time.Time) ([]int, map[string]float64, err
 
 		if vInfo.Status == types.ValidationStatusCancel {
 			tokenID := vInfo.Msg
-			wInfo, err := m.LoadWorkloadInfo(tokenID)
+			record, err := m.LoadWorkloadRecord(tokenID)
 			if err != nil {
 				vInfo.Profit = 0
 			}
 
-			if wInfo.Status != types.WorkloadStatusSucceeded {
+			if record.Status != types.WorkloadStatusSucceeded {
 				vInfo.Profit = 0
 			}
 
 			// check time
-			if wInfo.CreateTime.After(vInfo.EndTime) {
+			if record.CreateTime.After(vInfo.EndTime) {
 				vInfo.Profit = 0
 			}
 
-			if wInfo.Expiration.Before(vInfo.StartTime) {
+			if record.Expiration.Before(vInfo.StartTime) {
 				vInfo.Profit = 0
 			}
 		}

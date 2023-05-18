@@ -454,7 +454,7 @@ func (s *Scheduler) GetCandidateDownloadInfos(ctx context.Context, cid string) (
 	}
 	defer rows.Close()
 
-	tkPayloads := make([]*types.TokenPayload, 0)
+	workloadRecords := make([]*types.WorkloadRecord, 0)
 
 	for rows.Next() {
 		rInfo := &types.ReplicaInfo{}
@@ -478,9 +478,12 @@ func (s *Scheduler) GetCandidateDownloadInfos(ctx context.Context, cid string) (
 		if err != nil {
 			continue
 		}
-		tkPayloads = append(tkPayloads, tkPayload)
+
+		workloadRecord := &types.WorkloadRecord{TokenPayload: *tkPayload, Status: types.WorkloadStatusCreate}
+		workloadRecords = append(workloadRecords, workloadRecord)
 
 		source := &types.CandidateDownloadInfo{
+			NodeID:  nodeID,
 			Address: cNode.DownloadAddr(),
 			Tk:      token,
 		}
@@ -488,8 +491,8 @@ func (s *Scheduler) GetCandidateDownloadInfos(ctx context.Context, cid string) (
 		sources = append(sources, source)
 	}
 
-	if len(tkPayloads) > 0 {
-		if err = s.NodeManager.SaveTokenPayload(tkPayloads); err != nil {
+	if len(workloadRecords) > 0 {
+		if err = s.NodeManager.SaveWorkloadRecord(workloadRecords); err != nil {
 			return nil, err
 		}
 	}
@@ -597,7 +600,7 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) (*type
 
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	infos := make([]*types.EdgeDownloadInfo, 0)
-	tkPayloads := make([]*types.TokenPayload, 0)
+	workloadRecords := make([]*types.WorkloadRecord, 0)
 
 	for rows.Next() {
 		rInfo := &types.ReplicaInfo{}
@@ -621,7 +624,9 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) (*type
 		if err != nil {
 			continue
 		}
-		tkPayloads = append(tkPayloads, tkPayload)
+
+		workloadRecord := &types.WorkloadRecord{TokenPayload: *tkPayload, Status: types.WorkloadStatusCreate}
+		workloadRecords = append(workloadRecords, workloadRecord)
 
 		info := &types.EdgeDownloadInfo{
 			Address: eNode.DownloadAddr(),
@@ -636,8 +641,8 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) (*type
 		return nil, nil
 	}
 
-	if len(tkPayloads) > 0 {
-		if err = s.NodeManager.SaveTokenPayload(tkPayloads); err != nil {
+	if len(workloadRecords) > 0 {
+		if err = s.NodeManager.SaveWorkloadRecord(workloadRecords); err != nil {
 			return nil, err
 		}
 	}

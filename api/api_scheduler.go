@@ -83,7 +83,7 @@ type Scheduler interface {
 	// SubmitNodeWorkloadReport submits report of workload for node provide Asset Download
 	SubmitNodeWorkloadReport(ctx context.Context, r io.Reader) error //perm:edge,candidate
 	// GetAssetEvents retrieves a list of asset events with pagination using the specified limit, offset, and time
-	GetAssetEvents(ctx context.Context, startTime, endTime time.Time, limit, offset int) (*types.ListAssetEventRsp, error)
+	GetAssetEvents(ctx context.Context, startTime, endTime time.Time, limit, offset int) (*types.ListAssetEventRsp, error) //perm:web
 
 	// Server-related methods
 	// GetSchedulerPublicKey retrieves the scheduler's public key in PEM format

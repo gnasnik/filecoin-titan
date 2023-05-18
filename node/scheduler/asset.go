@@ -149,18 +149,6 @@ func (s *Scheduler) GetAssetReplicaInfos(ctx context.Context, req types.ListRepl
 	return info, nil
 }
 
-// GetAssetStatistics get asset related statistics information
-func (s *Scheduler) GetAssetStatistics(ctx context.Context) (*types.AssetStatistics, error) {
-	count, err := s.db.LoadSucceededReplicaCount()
-	if err != nil {
-		return nil, err
-	}
-
-	return &types.AssetStatistics{
-		ReplicaCount: count,
-	}, nil
-}
-
 // GetAssetEvents get asset events information
 func (s *Scheduler) GetAssetEvents(ctx context.Context, startTime, endTime time.Time, limit, offset int) (*types.ListAssetEventRsp, error) {
 	return s.db.LoadAssetEventInfos(startTime, endTime, limit, offset)

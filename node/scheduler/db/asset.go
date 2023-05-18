@@ -144,16 +144,6 @@ func (n *SQLDB) LoadAssetReplicas(hash string) ([]*types.ReplicaInfo, error) {
 	return out, nil
 }
 
-// LoadSucceededReplicaCount retrieves the succeeded replica count
-func (n *SQLDB) LoadSucceededReplicaCount() (int, error) {
-	query := fmt.Sprintf(`SELECT count(hash) FROM %s WHERE status=?`, replicaInfoTable)
-
-	var count int
-	err := n.db.Get(&count, query, types.ReplicaStatusSucceeded)
-
-	return count, err
-}
-
 // UpdateAssetRecordExpiry resets asset record expiration time based on hash and eTime
 func (n *SQLDB) UpdateAssetRecordExpiry(hash string, eTime time.Time, serverID dtypes.ServerID) error {
 	query := fmt.Sprintf(`UPDATE %s SET expiration=? WHERE hash=? AND scheduler_sid=?`, assetRecordTable)

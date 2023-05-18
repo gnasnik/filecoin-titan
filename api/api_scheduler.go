@@ -98,6 +98,4 @@ type Scheduler interface {
 	DeleteEdgeUpdateConfig(ctx context.Context, nodeType int) error //perm:admin
 	// GetValidationInfo get information related to validation and election
 	GetValidationInfo(ctx context.Context) (*types.ValidationInfo, error) //perm:web,admin
-	// GetAssetStatistics get asset related statistics information
-	GetAssetStatistics(ctx context.Context) (*types.AssetStatistics, error) //perm:web,admin
 }

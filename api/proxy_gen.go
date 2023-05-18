@@ -185,8 +185,6 @@ type SchedulerStruct struct {
 
 		GetAssetReplicaInfos func(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) `perm:"web,admin"`
 
-		GetAssetStatistics func(p0 context.Context) (*types.AssetStatistics, error) `perm:"web,admin"`
-
 		GetCandidateDownloadInfos func(p0 context.Context, p1 string) ([]*types.CandidateDownloadInfo, error) `perm:"edge,candidate"`
 
 		GetCandidateURLsForDetectNat func(p0 context.Context) ([]string, error) `perm:"default"`
@@ -668,17 +666,6 @@ func (s *SchedulerStruct) GetAssetReplicaInfos(p0 context.Context, p1 types.List
 }
 
 func (s *SchedulerStub) GetAssetReplicaInfos(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
-	return nil, ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetAssetStatistics(p0 context.Context) (*types.AssetStatistics, error) {
-	if s.Internal.GetAssetStatistics == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.GetAssetStatistics(p0)
-}
-
-func (s *SchedulerStub) GetAssetStatistics(p0 context.Context) (*types.AssetStatistics, error) {
 	return nil, ErrNotSupported
 }
 

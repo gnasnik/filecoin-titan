@@ -79,6 +79,16 @@ type PullAssetReq struct {
 	BandwidthDown float64
 }
 
+// AssetType represents the type of a asset
+type AssetType int
+
+const (
+	// AssetTypeCarfile type
+	AssetTypeCarfile AssetType = iota
+	// AssetTypeFile type
+	AssetTypeFile
+)
+
 // ReplicaStatus represents the status of a replica pull
 type ReplicaStatus int
 

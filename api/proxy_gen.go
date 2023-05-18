@@ -12,7 +12,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
-	xerrors "golang.org/x/xerrors"
+	"golang.org/x/xerrors"
 )
 
 var ErrNotSupported = xerrors.New("method not supported")
@@ -175,6 +175,8 @@ type SchedulerStruct struct {
 
 		EdgeConnect func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"edge"`
 
+		GetAssetEvents func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListAssetEventRsp, error) ``
+
 		GetAssetListForBucket func(p0 context.Context, p1 uint32) ([]string, error) `perm:"edge,candidate"`
 
 		GetAssetRecord func(p0 context.Context, p1 string) (*types.AssetRecord, error) `perm:"web,admin"`
@@ -191,7 +193,7 @@ type SchedulerStruct struct {
 
 		GetEdgeDownloadInfos func(p0 context.Context, p1 string) (*types.EdgeDownloadInfoList, error) `perm:"default"`
 
-		GetEdgeExternalServiceAddress func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"edge"`
+		GetEdgeExternalServiceAddress func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"admin"`
 
 		GetEdgeUpdateConfigs func(p0 context.Context) (map[int]*EdgeUpdateConfig, error) `perm:"edge"`
 
@@ -612,6 +614,17 @@ func (s *SchedulerStruct) EdgeConnect(p0 context.Context, p1 *types.ConnectOptio
 
 func (s *SchedulerStub) EdgeConnect(p0 context.Context, p1 *types.ConnectOptions) error {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetAssetEvents(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListAssetEventRsp, error) {
+	if s.Internal.GetAssetEvents == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetAssetEvents(p0, p1, p2, p3, p4)
+}
+
+func (s *SchedulerStub) GetAssetEvents(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListAssetEventRsp, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetAssetListForBucket(p0 context.Context, p1 uint32) ([]string, error) {

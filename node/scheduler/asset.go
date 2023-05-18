@@ -160,3 +160,8 @@ func (s *Scheduler) GetAssetStatistics(ctx context.Context) (*types.AssetStatist
 		ReplicaCount: count,
 	}, nil
 }
+
+// GetAssetEvents get asset events information
+func (s *Scheduler) GetAssetEvents(ctx context.Context, startTime, endTime time.Time, limit, offset int) (*types.ListAssetEventRsp, error) {
+	return nil, nil
+}

@@ -181,3 +181,9 @@ type AssetEventInfo struct {
 	Requester   string     `db:"requester"`
 	Details     string     `db:"details"`
 }
+
+// ListAssetEventRsp list asset events
+type ListAssetEventRsp struct {
+	Total           int               `json:"total"`
+	AssetEventInfos []*AssetEventInfo `json:"asset_event_infos"`
+}

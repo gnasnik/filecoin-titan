@@ -367,3 +367,33 @@ func (n *SQLDB) SaveAssetRecord(rInfo *types.AssetRecord, eInfo *types.AssetEven
 
 	return tx.Commit()
 }
+
+// LoadAssetEventInfos load asset event.
+func (n *SQLDB) LoadAssetEventInfos(startTime, endTime time.Time, limit, offset int) (*types.ListAssetEventRsp, error) {
+	res := new(types.ListAssetEventRsp)
+
+	var infos []*types.AssetEventInfo
+	query := fmt.Sprintf("SELECT * FROM %s WHERE start_time between ? and ? order by start_time asc LIMIT ? OFFSET ? ", assetEventsTable)
+
+	if limit > loadAssetEventDefaultLimit {
+		limit = loadAssetEventDefaultLimit
+	}
+
+	err := n.db.Select(&infos, query, startTime, endTime, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	res.AssetEventInfos = infos
+
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE start_time between ? and ?", assetEventsTable)
+	var count int
+	err = n.db.Get(&count, countQuery, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Total = count
+
+	return res, nil
+}

@@ -163,5 +163,5 @@ func (s *Scheduler) GetAssetStatistics(ctx context.Context) (*types.AssetStatist
 
 // GetAssetEvents get asset events information
 func (s *Scheduler) GetAssetEvents(ctx context.Context, startTime, endTime time.Time, limit, offset int) (*types.ListAssetEventRsp, error) {
-	return nil, nil
+	return s.db.LoadAssetEventInfos(startTime, endTime, limit, offset)
 }

@@ -328,10 +328,10 @@ func (n *SQLDB) SaveAssetRecord(rInfo *types.AssetRecord, eInfo *types.AssetEven
 
 	// asset record
 	query := fmt.Sprintf(
-		`INSERT INTO %s (hash, scheduler_sid, cid, edge_replicas, candidate_replicas, expiration, bandwidth_down) 
-		        VALUES (:hash, :scheduler_sid, :cid, :edge_replicas, :candidate_replicas, :expiration, :bandwidth_down)
+		`INSERT INTO %s (hash, scheduler_sid, cid, edge_replicas, candidate_replicas, expiration, bandwidth) 
+		        VALUES (:hash, :scheduler_sid, :cid, :edge_replicas, :candidate_replicas, :expiration, :bandwidth)
 				ON DUPLICATE KEY UPDATE scheduler_sid=:scheduler_sid, edge_replicas=:edge_replicas,
-				candidate_replicas=:candidate_replicas, expiration=:expiration, bandwidth_down=:bandwidth_down`, assetRecordTable)
+				candidate_replicas=:candidate_replicas, expiration=:expiration, bandwidth=:bandwidth`, assetRecordTable)
 	_, err = tx.NamedExec(query, rInfo)
 	if err != nil {
 		return err

@@ -223,7 +223,7 @@ type ValidationResultInfo struct {
 	EndTime     time.Time        `db:"end_time"`
 	Profit      float64          `db:"profit"`
 	Processed   bool             `db:"processed"`
-	Msg         string           `db:"msg"`
+	TokenID     string           `db:"token_id"`
 
 	UploadTraffic float64 `db:"upload_traffic"`
 }

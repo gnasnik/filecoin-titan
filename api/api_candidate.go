@@ -28,7 +28,7 @@ type ValidationResult struct {
 	CostTime  int64
 	IsTimeout bool
 
-	Msg string
+	// Msg string
 	// if IsCancel is true, Token is valid
 	// use for verify edge providing download
 	Token string

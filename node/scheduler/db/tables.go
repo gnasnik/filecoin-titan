@@ -68,7 +68,7 @@ var cValidationResultsTable = `
 	    end_time      DATETIME     DEFAULT NULL,
 		profit        FLOAT        DEFAULT 0,
 		processed     BOOLEAN,
-		msg           VARCHAR(128) DEFAULT '',
+		token         VARCHAR(128) DEFAULT '',
 		PRIMARY KEY (id),
 	    KEY round_node (round_id, node_id)
     ) ENGINE=InnoDB COMMENT='Validation result records';`

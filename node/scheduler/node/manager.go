@@ -357,7 +357,7 @@ func (m *Manager) loadResults(maxTime time.Time) ([]*types.ValidationResultInfo,
 		}
 
 		if vInfo.Status == types.ValidationStatusCancel {
-			tokenID := vInfo.Msg
+			tokenID := vInfo.TokenID
 			record, err := m.LoadWorkloadRecord(tokenID)
 			if err != nil {
 				vInfo.Profit = 0

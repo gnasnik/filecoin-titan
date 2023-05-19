@@ -55,12 +55,12 @@ func (n *SQLDB) LoadNodeValidationInfo(roundID, nodeID string) (*types.Validatio
 // UpdateValidationResultInfo updates the validation result information.
 func (n *SQLDB) UpdateValidationResultInfo(info *types.ValidationResultInfo) error {
 	if info.Status == types.ValidationStatusSuccess {
-		query := fmt.Sprintf(`UPDATE %s SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW(), profit=:profit, msg=:msg WHERE round_id=:round_id AND node_id=:node_id`, validationResultTable)
+		query := fmt.Sprintf(`UPDATE %s SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW(), profit=:profit, token_id=:token_id WHERE round_id=:round_id AND node_id=:node_id`, validationResultTable)
 		_, err := n.db.NamedExec(query, info)
 		return err
 	}
 
-	query := fmt.Sprintf(`UPDATE %s SET status=:status, end_time=NOW(), profit=:profit WHERE round_id=:round_id AND node_id=:node_id`, validationResultTable)
+	query := fmt.Sprintf(`UPDATE %s SET status=:status, end_time=NOW(), profit=:profit, token_id=:token_id WHERE round_id=:round_id AND node_id=:node_id`, validationResultTable)
 	_, err := n.db.NamedExec(query, info)
 	return err
 }

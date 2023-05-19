@@ -244,12 +244,12 @@ func (t *AssetPullingInfo) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	if t.BandwidthDown >= 0 {
-		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.BandwidthDown)); err != nil {
+	if t.Bandwidth >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.Bandwidth)); err != nil {
 			return err
 		}
 	} else {
-		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.BandwidthDown-1)); err != nil {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.Bandwidth-1)); err != nil {
 			return err
 		}
 	}
@@ -622,7 +622,7 @@ func (t *AssetPullingInfo) UnmarshalCBOR(r io.Reader) (err error) {
 					return fmt.Errorf("wrong type for int64 field: %d", maj)
 				}
 
-				t.BandwidthDown = int64(extraI)
+				t.Bandwidth = int64(extraI)
 			}
 			// t.CandidateReplicas (int64) (int64)
 		case "CandidateReplicas":

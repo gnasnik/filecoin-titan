@@ -521,7 +521,7 @@ func (n *SQLDB) UpdateValidationResultProfit(id int, profit float64) error {
 }
 
 // UpdateNodeProfitsByValidationResult Update the gain value of the node, and set the processed flag to the validation record
-func (n *SQLDB) UpdateNodeProfitsByValidationResult(vIDs []int, nodeProfits map[string]float64) error {
+func (n *SQLDB) UpdateNodeProfitsByValidationResult(infos []*types.ValidationResultInfo, nodeProfits map[string]float64) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -535,21 +535,18 @@ func (n *SQLDB) UpdateNodeProfitsByValidationResult(vIDs []int, nodeProfits map[
 	}()
 
 	// update validation result info
-	uQuery := fmt.Sprintf(`UPDATE %s SET processed=? WHERE id in (?)`, validationResultTable)
-	query, args, err := sqlx.In(uQuery, true, vIDs)
-	if err != nil {
-		return err
-	}
-
-	query = n.db.Rebind(query)
-	_, err = n.db.QueryxContext(context.Background(), query, args...)
-	if err != nil {
-		return err
+	for _, info := range infos {
+		// update node profit
+		uQuery := fmt.Sprintf(`UPDATE %s SET processed=?,profit=? WHERE id=?`, validationResultTable)
+		_, err = tx.Exec(uQuery, true, info.Profit, info.ID)
+		if err != nil {
+			return err
+		}
 	}
 
 	for nodeID, profit := range nodeProfits {
 		// update node profit
-		uQuery = fmt.Sprintf(`UPDATE %s SET profit=profit+? WHERE node_id=?`, nodeInfoTable)
+		uQuery := fmt.Sprintf(`UPDATE %s SET profit=profit+? WHERE node_id=?`, nodeInfoTable)
 		_, err = tx.Exec(uQuery, profit, nodeID)
 		if err != nil {
 			return err

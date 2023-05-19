@@ -81,7 +81,7 @@ var (
 
 	bandwidthFlag = &cli.Float64Flag{
 		Name:  "bandwidth",
-		Usage: "bandwidth (unit:B/s)",
+		Usage: "bandwidth (unit:MiB/s)",
 		Value: 0,
 	}
 )

@@ -30,8 +30,8 @@ type NodeInfo struct {
 
 	DiskUsage       float64         `json:"disk_usage" form:"diskUsage" gorm:"column:disk_usage;comment:;" db:"disk_usage"`
 	Blocks          int             `json:"blocks" form:"blockCount" gorm:"column:blocks;comment:;" db:"blocks"`
-	BandwidthUp     float64         `json:"bandwidth_up" db:"bandwidth_up"`
-	BandwidthDown   float64         `json:"bandwidth_down" db:"bandwidth_down"`
+	BandwidthUp     int64           `json:"bandwidth_up" db:"bandwidth_up"`     // B
+	BandwidthDown   int64           `json:"bandwidth_down" db:"bandwidth_down"` // B
 	NATType         string          `json:"nat_type" form:"natType" gorm:"column:nat_type;comment:;" db:"nat_type"`
 	DiskSpace       float64         `json:"disk_space" form:"diskSpace" gorm:"column:disk_space;comment:;" db:"disk_space"`
 	SystemVersion   string          `json:"system_version" form:"systemVersion" gorm:"column:system_version;comment:;" db:"system_version"`

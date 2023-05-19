@@ -1,9 +1,11 @@
 package assets
 
 import (
+	"math"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
+	"github.com/alecthomas/units"
 	"github.com/filecoin-project/go-statemachine"
 	"golang.org/x/xerrors"
 )
@@ -142,15 +144,18 @@ func (m *Manager) handleCandidatesPulling(ctx statemachine.Context, info AssetPu
 	return nil
 }
 
-func (m *Manager) getCurBandwidthDown(nodes []string) int64 {
-	bandwidthDown := int64(0)
+func (m *Manager) getCurBandwidthUp(nodes []string) int64 {
+	bandwidthUp := int64(0)
 	for _, nodeID := range nodes {
 		node := m.nodeMgr.GetEdgeNode(nodeID)
 		if node != nil {
-			bandwidthDown += int64(node.BandwidthDown)
+			bandwidthUp += int64(node.BandwidthUp)
 		}
 	}
-	return bandwidthDown
+
+	// B to MiB
+	v := int64(math.Ceil(float64(bandwidthUp) / float64(units.MiB)))
+	return v
 }
 
 // handleEdgesSelect handles the selection of edge nodes for asset pull
@@ -164,9 +169,9 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 		needCount = info.ReplenishReplicas
 	}
 
-	needBandwidthDown := info.BandwidthDown - m.getCurBandwidthDown(info.EdgeReplicaSucceeds)
+	needBandwidth := info.Bandwidth - m.getCurBandwidthUp(info.EdgeReplicaSucceeds)
 
-	if needCount < 1 && needBandwidthDown <= 0 {
+	if needCount < 1 && needBandwidth <= 0 {
 		// The number of edge node replications and the total downlink bandwidth are met
 		return ctx.Send(SkipStep{})
 	}
@@ -177,7 +182,7 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 	}
 
 	// find nodes
-	nodes, str := m.chooseEdgeNodesForAssetReplica(int(needCount), needBandwidthDown, info.EdgeReplicaSucceeds)
+	nodes, str := m.chooseEdgeNodesForAssetReplica(int(needCount), needBandwidth, info.EdgeReplicaSucceeds)
 	if len(nodes) < 1 {
 		return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found %s", str)})
 	}
@@ -210,9 +215,9 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 func (m *Manager) handleEdgesPulling(ctx statemachine.Context, info AssetPullingInfo) error {
 	log.Debugf("handle edges pulling, %s", info.CID)
 
-	needBandwidthDown := info.BandwidthDown - m.getCurBandwidthDown(info.EdgeReplicaSucceeds)
+	needBandwidth := info.Bandwidth - m.getCurBandwidthUp(info.EdgeReplicaSucceeds)
 
-	if int64(len(info.EdgeReplicaSucceeds)) >= info.EdgeReplicas && needBandwidthDown <= 0 {
+	if int64(len(info.EdgeReplicaSucceeds)) >= info.EdgeReplicas && needBandwidth <= 0 {
 		return ctx.Send(PullSucceed{})
 	}
 

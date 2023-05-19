@@ -43,6 +43,8 @@ const (
 	numAssetBuckets = 128
 	// When the node is offline for more than this value, the scheduler will assign other nodes to pull the assets to increase the reliability of the assets
 	maxNodeOfflineTime = 24 * time.Hour
+	// Total bandwidth limit provided by the asset (The larger the bandwidth provided, the more backups are required)
+	assetBandwidthLimit = 10000 // unit:MiB/s
 )
 
 // Manager manages asset replicas
@@ -208,6 +210,10 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 		return xerrors.Errorf("The number of replicas %d exceeds the limit %d", info.Replicas, assetEdgeReplicasLimit)
 	}
 
+	if info.Bandwidth > assetBandwidthLimit {
+		return xerrors.Errorf("The number of bandwidthDown %d exceeds the limit %d", info.Bandwidth, assetBandwidthLimit)
+	}
+
 	log.Infof("asset event: %s, add asset replica: %d,expiration: %s", info.CID, info.Replicas, info.Expiration.String())
 
 	assetRecord, err := m.LoadAssetRecord(info.Hash)
@@ -223,7 +229,7 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 			NeedEdgeReplica:       info.Replicas,
 			NeedCandidateReplicas: int64(m.GetCandidateReplicaCount()),
 			Expiration:            info.Expiration,
-			NeedBandwidthDown:     info.BandwidthDown,
+			NeedBandwidth:         info.Bandwidth,
 			State:                 UndefinedState.String(),
 		}
 
@@ -265,7 +271,7 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, repleni
 		NeedCandidateReplicas: int64(m.GetCandidateReplicaCount()),
 		Expiration:            assetRecord.Expiration,
 		ReplenishReplicas:     replenishReplicas,
-		NeedBandwidthDown:     assetRecord.NeedBandwidthDown,
+		NeedBandwidth:         assetRecord.NeedBandwidth,
 	}
 
 	event := &types.AssetEventInfo{Hash: assetRecord.Hash, Event: types.AssetEventAdd, Requester: userID}

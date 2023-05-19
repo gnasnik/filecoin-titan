@@ -15,30 +15,29 @@ import (
 
 var log = logging.Logger("validation")
 
-
 // VWindow represents a validation window that contains a validator id and validatable node list.
 type VWindow struct {
 	NodeID           string // Node ID of the validation window.
-	ValidatableNodes map[string]float64
+	ValidatableNodes map[string]int64
 }
 
 func newVWindow(nID string) *VWindow {
 	return &VWindow{
 		NodeID:           nID,
-		ValidatableNodes: make(map[string]float64),
+		ValidatableNodes: make(map[string]int64),
 	}
 }
 
 // ValidatableGroup Each ValidatableGroup will be paired with a VWindow
 type ValidatableGroup struct {
-	sumBwUp float64
-	nodes   map[string]float64
+	sumBwUp int64
+	nodes   map[string]int64
 	lock    sync.RWMutex
 }
 
 func newValidatableGroup() *ValidatableGroup {
 	return &ValidatableGroup{
-		nodes: make(map[string]float64),
+		nodes: make(map[string]int64),
 	}
 }
 

@@ -15,6 +15,7 @@ import (
 
 	"github.com/Filecoin-Titan/titan/node/scheduler/db"
 	"github.com/Filecoin-Titan/titan/node/scheduler/leadership"
+	"github.com/Filecoin-Titan/titan/node/scheduler/recordfile"
 	logging "github.com/ipfs/go-log/v2"
 )
 
@@ -288,32 +289,63 @@ func (m *Manager) handleValidationResults() {
 
 	// do handle validation result
 	for {
-		ids, nodeProfits, err := m.loadResults(maxTime)
+		infos, nodeProfits, err := m.loadResults(maxTime)
 		if err != nil {
 			log.Errorf("loadResults err:%s", err.Error())
 			return
 		}
 
-		if len(ids) == 0 {
+		if len(infos) == 0 {
 			return
 		}
 
-		err = m.UpdateNodeProfitsByValidationResult(ids, nodeProfits)
+		err = m.UpdateNodeProfitsByValidationResult(infos, nodeProfits)
 		if err != nil {
 			log.Errorf("UpdateNodeProfitsByValidationResult err:%s", err.Error())
+			return
+		}
+
+		data, err := m.saveValidationResultToFile(infos)
+		if err != nil {
+			log.Errorf("saveValidationResultToFile err:%s", err.Error())
+			fmt.Println(data)
 			return
 		}
 	}
 }
 
-func (m *Manager) loadResults(maxTime time.Time) ([]int, map[string]float64, error) {
+func (m *Manager) saveValidationResultToFile(infos []*types.ValidationResultInfo) (string, error) {
+	data := ""
+	// save to file
+	for _, vInfo := range infos {
+		str := fmt.Sprintf("RoundID:%s, NodeID:%s, ValidatorID:%s, Profit:%.2f, ValidationCID:%s,EndTime:%s \n",
+			vInfo.RoundID, vInfo.NodeID, vInfo.ValidatorID, vInfo.Profit, vInfo.Cid, vInfo.EndTime.String())
+		data = fmt.Sprintf("%s%s", data, str)
+	}
+
+	// TODO Handling error situations
+	writer, err := recordfile.NewWriter(recordfile.DirectoryNameValidation)
+	if err != nil {
+		return data, xerrors.Errorf("NewWriter err:%s", err.Error())
+	}
+	defer writer.Close()
+
+	err = writer.WriteData(data)
+	if err != nil {
+		return data, xerrors.Errorf("WriteData err:%s", err.Error())
+	}
+
+	return data, nil
+}
+
+func (m *Manager) loadResults(maxTime time.Time) ([]*types.ValidationResultInfo, map[string]float64, error) {
 	rows, err := m.LoadValidationResults(maxTime, vResultLimit)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer rows.Close()
 
-	ids := make([]int, 0)
+	infos := make([]*types.ValidationResultInfo, 0)
 	nodeProfits := make(map[string]float64)
 
 	for rows.Next() {
@@ -321,11 +353,6 @@ func (m *Manager) loadResults(maxTime time.Time) ([]int, map[string]float64, err
 		err = rows.StructScan(vInfo)
 		if err != nil {
 			log.Errorf("loadResults StructScan err: %s", err.Error())
-			continue
-		}
-
-		ids = append(ids, vInfo.ID)
-		if vInfo.Profit == 0 {
 			continue
 		}
 
@@ -350,10 +377,16 @@ func (m *Manager) loadResults(maxTime time.Time) ([]int, map[string]float64, err
 			}
 		}
 
+		infos = append(infos, vInfo)
+
+		if vInfo.Profit == 0 {
+			continue
+		}
+
 		nodeProfits[vInfo.NodeID] += vInfo.Profit
 	}
 
-	return ids, nodeProfits, nil
+	return infos, nodeProfits, nil
 }
 
 func (m *Manager) redistributeNodeSelectWeights() {

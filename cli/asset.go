@@ -165,7 +165,7 @@ var pullAssetCmd = &cli.Command{
 		cid := cctx.String("cid")
 		replicaCount := cctx.Int64("replica-count")
 		date := cctx.String("expiration-date")
-		bandwidth := cctx.Float64("bandwidth")
+		bandwidth := cctx.Int64("bandwidth")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -191,7 +191,7 @@ var pullAssetCmd = &cli.Command{
 
 		info.Expiration = eTime
 		info.Replicas = replicaCount
-		info.BandwidthDown = bandwidth
+		info.Bandwidth = bandwidth
 
 		err = schedulerAPI.PullAsset(ctx, info)
 		if err != nil {

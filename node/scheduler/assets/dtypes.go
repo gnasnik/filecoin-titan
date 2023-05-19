@@ -29,7 +29,7 @@ type AssetPullingInfo struct {
 	Blocks            int64
 	EdgeReplicas      int64
 	CandidateReplicas int64
-	BandwidthDown     int64
+	Bandwidth         int64
 
 	EdgeReplicaSucceeds      []string
 	CandidateReplicaSucceeds []string
@@ -69,7 +69,7 @@ func assetPullingInfoFrom(info *types.AssetRecord) *AssetPullingInfo {
 		CandidateReplicas: info.NeedCandidateReplicas,
 		RetryCount:        info.RetryCount,
 		ReplenishReplicas: info.ReplenishReplicas,
-		BandwidthDown:     int64(info.NeedBandwidthDown),
+		Bandwidth:         int64(info.NeedBandwidth),
 	}
 
 	for _, r := range info.ReplicaInfos {

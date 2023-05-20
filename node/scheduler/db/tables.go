@@ -18,7 +18,7 @@ var cReplicaInfoTable = `
 		done_size     BIGINT       DEFAULT 0,
 		is_candidate  BOOLEAN,
 		end_time      DATETIME     DEFAULT CURRENT_TIMESTAMP,
-		UNIQUE KEY (hash,node_id),
+		PRIMARY KEY (hash,node_id),
 		KEY idx_node_id (node_id)
 	) ENGINE=InnoDB COMMENT='asset replica info';`
 

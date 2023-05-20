@@ -205,7 +205,7 @@ func (m *Manager) initStateMachines(ctx context.Context) error {
 			continue
 		}
 
-		m.addOrResetAssetTicker(asset.Hash.String())
+		m.resetAssetNoResponseCount(asset.Hash.String())
 	}
 
 	return nil

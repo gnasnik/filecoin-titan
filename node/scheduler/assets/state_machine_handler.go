@@ -54,7 +54,7 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 		return ctx.Send(SelectFailed{error: err})
 	}
 
-	m.addOrResetAssetTicker(info.Hash.String())
+	m.resetAssetNoResponseCount(info.Hash.String())
 
 	// send a cache request to the node
 	go func() {
@@ -111,7 +111,7 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 
 	sources := m.getDownloadSources(info.CID, info.CandidateReplicaSucceeds)
 
-	m.addOrResetAssetTicker(info.Hash.String())
+	m.resetAssetNoResponseCount(info.Hash.String())
 
 	// send a pull request to the node
 	go func() {
@@ -193,7 +193,7 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 		return ctx.Send(SelectFailed{error: err})
 	}
 
-	m.addOrResetAssetTicker(info.Hash.String())
+	m.resetAssetNoResponseCount(info.Hash.String())
 
 	// send a pull request to the node
 	go func() {
@@ -231,7 +231,7 @@ func (m *Manager) handleEdgesPulling(ctx statemachine.Context, info AssetPulling
 // handleServicing asset pull completed and in service status
 func (m *Manager) handleServicing(ctx statemachine.Context, info AssetPullingInfo) error {
 	log.Infof("handle servicing: %s", info.CID)
-	m.removeTickerForAsset(info.Hash.String())
+	m.stopAssetCount(info.Hash.String())
 
 	// remove fail replicas
 	return m.DeleteUnfinishedReplicas(info.Hash.String())
@@ -239,7 +239,7 @@ func (m *Manager) handleServicing(ctx statemachine.Context, info AssetPullingInf
 
 // handlePullsFailed handles the failed state of asset pulling and retries if necessary
 func (m *Manager) handlePullsFailed(ctx statemachine.Context, info AssetPullingInfo) error {
-	m.removeTickerForAsset(info.Hash.String())
+	m.stopAssetCount(info.Hash.String())
 
 	if info.RetryCount >= int64(MaxRetryCount) {
 		log.Infof("handle pulls failed: %s, retry count: %d", info.CID, info.RetryCount)

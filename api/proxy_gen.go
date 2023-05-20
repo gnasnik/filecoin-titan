@@ -12,7 +12,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
-	xerrors "golang.org/x/xerrors"
+	"golang.org/x/xerrors"
 )
 
 var ErrNotSupported = xerrors.New("method not supported")
@@ -182,8 +182,6 @@ type SchedulerStruct struct {
 		GetAssetRecord func(p0 context.Context, p1 string) (*types.AssetRecord, error) `perm:"web,admin"`
 
 		GetAssetRecords func(p0 context.Context, p1 int, p2 int, p3 []string, p4 dtypes.ServerID) ([]*types.AssetRecord, error) `perm:"web,admin"`
-
-		GetAssetReplicaInfos func(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) `perm:"web,admin"`
 
 		GetCandidateDownloadInfos func(p0 context.Context, p1 string) ([]*types.CandidateDownloadInfo, error) `perm:"edge,candidate"`
 
@@ -656,17 +654,6 @@ func (s *SchedulerStruct) GetAssetRecords(p0 context.Context, p1 int, p2 int, p3
 
 func (s *SchedulerStub) GetAssetRecords(p0 context.Context, p1 int, p2 int, p3 []string, p4 dtypes.ServerID) ([]*types.AssetRecord, error) {
 	return *new([]*types.AssetRecord), ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetAssetReplicaInfos(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
-	if s.Internal.GetAssetReplicaInfos == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.GetAssetReplicaInfos(p0, p1)
-}
-
-func (s *SchedulerStub) GetAssetReplicaInfos(p0 context.Context, p1 types.ListReplicaInfosReq) (*types.ListReplicaInfosRsp, error) {
-	return nil, ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetCandidateDownloadInfos(p0 context.Context, p1 string) ([]*types.CandidateDownloadInfo, error) {

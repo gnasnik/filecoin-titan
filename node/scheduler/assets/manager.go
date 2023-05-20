@@ -45,6 +45,8 @@ const (
 	maxNodeOfflineTime = 24 * time.Hour
 	// Total bandwidth limit provided by the asset (The larger the bandwidth provided, the more backups are required)
 	assetBandwidthLimit = 10000 // unit:MiB/s
+	// If the node does not reply more than once, the asset pull timeout is determined.
+	assetTimeoutLimit = 3
 )
 
 // Manager manages asset replicas
@@ -53,39 +55,18 @@ type Manager struct {
 	stateMachineWait   sync.WaitGroup
 	assetStateMachines *statemachine.StateGroup
 	lock               sync.Mutex
-	apTickers          map[string]*assetTicker       // timeout timer for asset pulling
+	pullingAssets      map[string]int                // Assignments where assets are being pulled
 	config             dtypes.GetSchedulerConfigFunc // scheduler config
 	*db.SQLDB
-}
-
-type assetTicker struct {
-	ticker *time.Ticker
-	close  chan struct{}
-}
-
-func (t *assetTicker) run(job func() error) {
-	for {
-		select {
-		case <-t.ticker.C:
-			err := job()
-			if err != nil {
-				log.Error(err.Error())
-				break
-			}
-			return
-		case <-t.close:
-			return
-		}
-	}
 }
 
 // NewManager returns a new AssetManager instance
 func NewManager(nodeManager *node.Manager, ds datastore.Batching, configFunc dtypes.GetSchedulerConfigFunc, sdb *db.SQLDB) *Manager {
 	m := &Manager{
-		nodeMgr:   nodeManager,
-		apTickers: make(map[string]*assetTicker),
-		config:    configFunc,
-		SQLDB:     sdb,
+		nodeMgr:       nodeManager,
+		pullingAssets: make(map[string]int),
+		config:        configFunc,
+		SQLDB:         sdb,
 	}
 
 	// state machine initialization
@@ -146,11 +127,32 @@ func (m *Manager) startCheckPullProgressesTimer(ctx context.Context) {
 	}
 }
 
+func (m *Manager) setAssetTimeout(hash string) error {
+	// update replicas status
+	err := m.UpdateReplicasStatusToFailed(hash)
+	if err != nil {
+		return xerrors.Errorf("setAssetTimeout %s UpdateReplicasStatusToFailed err:%s", hash, err.Error())
+	}
+
+	err = m.assetStateMachines.Send(AssetHash(hash), PullFailed{error: xerrors.New("node pull asset response timeout")})
+	if err != nil {
+		return xerrors.Errorf("setAssetTimeout %s send time out err:%s", hash, err.Error())
+	}
+
+	return nil
+}
+
 func (m *Manager) retrieveNodePullProgresses() {
 	nodePulls := make(map[string][]string)
 
 	// Process pulling assets
-	for hash := range m.apTickers {
+	for hash := range m.pullingAssets {
+		if m.pullingAssets[hash] >= assetTimeoutLimit {
+			m.setAssetTimeout(hash)
+			continue
+		}
+		m.pullingAssets[hash]++
+
 		cid, err := cidutil.HashToCID(hash)
 		if err != nil {
 			log.Errorf("retrieveNodePullProgresses %s HashString2CIDString err:%s", hash, err.Error())
@@ -167,6 +169,7 @@ func (m *Manager) retrieveNodePullProgresses() {
 			list := nodePulls[nodeID]
 			nodePulls[nodeID] = append(list, cid)
 		}
+
 	}
 
 	getCP := func(nodeID string, cids []string) {
@@ -202,7 +205,7 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 	// Waiting for state machine initialization
 	m.stateMachineWait.Wait()
 
-	if len(m.apTickers) >= assetPullTaskLimit {
+	if len(m.pullingAssets) >= assetPullTaskLimit {
 		return xerrors.Errorf("The asset in the pulling exceeds the limit %d, please wait", assetPullTaskLimit)
 	}
 
@@ -245,7 +248,7 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 	}
 
 	if exist, _ := m.assetStateMachines.Has(AssetHash(assetRecord.Hash)); !exist {
-		return xerrors.Errorf("not found asset %s", assetRecord.Hash)
+		return xerrors.Errorf("No operation rights, the asset belongs to another scheduler %s", assetRecord.Hash)
 	}
 
 	// Check if the asset is in servicing state
@@ -290,7 +293,7 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, repleni
 
 // RestartPullAssets restarts asset pulls
 func (m *Manager) RestartPullAssets(hashes []types.AssetHash) error {
-	if len(m.apTickers)+len(hashes) >= assetPullTaskLimit {
+	if len(m.pullingAssets)+len(hashes) >= assetPullTaskLimit {
 		return xerrors.Errorf("The asset in the pulling exceeds the limit %d, please wait", assetPullTaskLimit)
 	}
 
@@ -362,14 +365,7 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 			continue
 		}
 
-		{
-			m.lock.Lock()
-			tickerC, ok := m.apTickers[hash]
-			if ok {
-				tickerC.ticker.Reset(nodePullAssetTimeout)
-			}
-			m.lock.Unlock()
-		}
+		m.resetAssetNoResponseCount(hash)
 
 		if progress.Status == types.ReplicaStatusWaiting {
 			pullingCount++
@@ -427,53 +423,19 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 	}
 }
 
-// addOrResetAssetTicker adds or resets the asset ticker with a given hash
-func (m *Manager) addOrResetAssetTicker(hash string) {
+// Reset the number of no response asset tasks
+func (m *Manager) resetAssetNoResponseCount(hash string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	fn := func() error {
-		// update replicas status
-		err := m.UpdateReplicasStatusToFailed(hash)
-		if err != nil {
-			return xerrors.Errorf("addOrResetAssetTicker %s UpdateReplicasStatusToFailed err:%s", hash, err.Error())
-		}
-
-		err = m.assetStateMachines.Send(AssetHash(hash), PullFailed{error: xerrors.New("node pull asset response timeout")})
-		if err != nil {
-			return xerrors.Errorf("addOrResetAssetTicker %s send time out err:%s", hash, err.Error())
-		}
-
-		return nil
-	}
-
-	t, ok := m.apTickers[hash]
-	if ok {
-		t.ticker.Reset(nodePullAssetTimeout)
-		return
-	}
-
-	m.apTickers[hash] = &assetTicker{
-		ticker: time.NewTicker(nodePullAssetTimeout),
-		close:  make(chan struct{}),
-	}
-
-	go m.apTickers[hash].run(fn)
+	m.pullingAssets[hash] = 0
 }
 
-// removeTickerForAsset removes the asset ticker for a given key
-func (m *Manager) removeTickerForAsset(key string) {
+func (m *Manager) stopAssetCount(key string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	t, ok := m.apTickers[key]
-	if !ok {
-		return
-	}
-
-	t.ticker.Stop()
-	close(t.close)
-	delete(m.apTickers, key)
+	delete(m.pullingAssets, key)
 }
 
 // UpdateAssetExpiration updates the asset expiration for a given CID

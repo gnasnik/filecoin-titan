@@ -251,28 +251,6 @@ func (n *SQLDB) DeleteUnfinishedReplicas(hash string) error {
 	return err
 }
 
-// LoadReplicas load information about all replicas whose end_time is between startTime and endTime, limited to "count" results and starting from "cursor".
-func (n *SQLDB) LoadReplicas(startTime time.Time, endTime time.Time, cursor, count int) (*types.ListReplicaInfosRsp, error) {
-	var total int64
-	countSQL := fmt.Sprintf(`SELECT count(hash) FROM %s WHERE end_time between ? and ?`, replicaInfoTable)
-	if err := n.db.Get(&total, countSQL, startTime, endTime); err != nil {
-		return nil, err
-	}
-
-	if count > loadReplicaInfosDefaultLimit {
-		count = loadReplicaInfosDefaultLimit
-	}
-
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE end_time between ? and ? limit ?,?`, replicaInfoTable)
-
-	var out []*types.ReplicaInfo
-	if err := n.db.Select(&out, query, startTime, endTime, cursor, count); err != nil {
-		return nil, err
-	}
-
-	return &types.ListReplicaInfosRsp{Replicas: out, Total: total}, nil
-}
-
 // AssetExists checks if an asset exists in the state machine table of the specified server.
 func (n *SQLDB) AssetExists(hash string, serverID dtypes.ServerID) (bool, error) {
 	var total int64

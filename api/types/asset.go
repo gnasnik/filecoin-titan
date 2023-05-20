@@ -127,22 +127,6 @@ var ReplicaStatusAll = []ReplicaStatus{
 	ReplicaStatusSucceeded,
 }
 
-// ListReplicaInfosReq represents a request to list asset replicas
-type ListReplicaInfosReq struct {
-	// Unix timestamp
-	StartTime int64 `json:"start_time"`
-	// Unix timestamp
-	EndTime int64 `json:"end_time"`
-	Cursor  int   `json:"cursor"`
-	Count   int   `json:"count"`
-}
-
-// ListReplicaInfosRsp represents a response containing a list of asset replicas
-type ListReplicaInfosRsp struct {
-	Replicas []*ReplicaInfo `json:"data"`
-	Total    int64          `json:"total"`
-}
-
 // AssetStats contains statistics about assets
 type AssetStats struct {
 	TotalAssetCount     int

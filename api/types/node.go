@@ -210,20 +210,21 @@ type ListValidationResultRsp struct {
 
 // ValidationResultInfo validator result info
 type ValidationResultInfo struct {
-	ID          int              `db:"id"`
-	RoundID     string           `db:"round_id"`
-	NodeID      string           `db:"node_id"`
-	Cid         string           `db:"cid"`
-	ValidatorID string           `db:"validator_id"`
-	BlockNumber int64            `db:"block_number"` // number of blocks verified
-	Status      ValidationStatus `db:"status"`
-	Duration    int64            `db:"duration"` // validator duration, microsecond
-	Bandwidth   float64          `db:"bandwidth"`
-	StartTime   time.Time        `db:"start_time"`
-	EndTime     time.Time        `db:"end_time"`
-	Profit      float64          `db:"profit"`
-	Processed   bool             `db:"processed"`
-	TokenID     string           `db:"token_id"`
+	ID               int              `db:"id"`
+	RoundID          string           `db:"round_id"`
+	NodeID           string           `db:"node_id"`
+	Cid              string           `db:"cid"`
+	ValidatorID      string           `db:"validator_id"`
+	BlockNumber      int64            `db:"block_number"` // number of blocks verified
+	Status           ValidationStatus `db:"status"`
+	Duration         int64            `db:"duration"` // validator duration, microsecond
+	Bandwidth        float64          `db:"bandwidth"`
+	StartTime        time.Time        `db:"start_time"`
+	EndTime          time.Time        `db:"end_time"`
+	Profit           float64          `db:"profit"`
+	CalculatedProfit bool             `db:"calculated_profit"`
+	TokenID          string           `db:"token_id"`
+	FileSaved        bool             `db:"file_saved"`
 
 	UploadTraffic float64 `db:"upload_traffic"`
 }

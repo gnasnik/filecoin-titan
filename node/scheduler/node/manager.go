@@ -15,7 +15,6 @@ import (
 
 	"github.com/Filecoin-Titan/titan/node/scheduler/db"
 	"github.com/Filecoin-Titan/titan/node/scheduler/leadership"
-	"github.com/Filecoin-Titan/titan/node/scheduler/recordfile"
 	logging "github.com/ipfs/go-log/v2"
 )
 
@@ -305,48 +304,11 @@ func (m *Manager) handleValidationResults() {
 			return
 		}
 
-		m.saveValidationResultToFiles(infos)
-	}
-}
-
-func (m *Manager) saveValidationResultToFiles(infos []*types.ValidationResultInfo) {
-	ds := make(map[string]string)
-
-	saveFile := func(data, filename string) error {
-		writer, err := recordfile.NewWriter(recordfile.DirectoryNameValidation, filename)
-		if err != nil {
-			return xerrors.Errorf("NewWriter err:%s", err.Error())
-		}
-		defer writer.Close()
-
-		err = writer.WriteData(data)
-		if err != nil {
-			return xerrors.Errorf("WriteData err:%s", err.Error())
-		}
-
-		return nil
-	}
-
-	// save to file
-	for _, vInfo := range infos {
-		str := fmt.Sprintf("RoundID:%s, NodeID:%s, ValidatorID:%s, Profit:%.2f, ValidationCID:%s,EndTime:%s \n",
-			vInfo.RoundID, vInfo.NodeID, vInfo.ValidatorID, vInfo.Profit, vInfo.Cid, vInfo.EndTime.String())
-
-		filename := vInfo.EndTime.Format("20060102")
-		data := ds[filename]
-		ds[filename] = fmt.Sprintf("%s%s", data, str)
-	}
-
-	for filename, data := range ds {
-		err := saveFile(filename, data)
-		if err != nil {
-			log.Errorf("saveFile err:%s", err.Error())
-		}
 	}
 }
 
 func (m *Manager) loadResults(maxTime time.Time) ([]*types.ValidationResultInfo, map[string]float64, error) {
-	rows, err := m.LoadValidationResults(maxTime, vResultLimit)
+	rows, err := m.LoadUnCalculatedValidationResults(maxTime, vResultLimit)
 	if err != nil {
 		return nil, nil, err
 	}

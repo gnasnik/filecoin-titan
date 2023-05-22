@@ -17,6 +17,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/scheduler/leadership"
 	"github.com/Filecoin-Titan/titan/node/scheduler/nat"
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
+	"github.com/Filecoin-Titan/titan/node/scheduler/recordfile"
 	"github.com/Filecoin-Titan/titan/node/scheduler/sync"
 	"github.com/Filecoin-Titan/titan/node/scheduler/validation"
 	"github.com/Filecoin-Titan/titan/node/scheduler/workload"
@@ -60,6 +61,7 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(*config.SchedulerCfg), cfg),
 		Override(new(*etcdcli.Client), modules.RegisterToEtcd),
 		Override(new(*leadership.Manager), leadership.NewManager),
+		Override(new(*recordfile.Manager), recordfile.NewManager),
 		Override(new(*sqlx.DB), modules.NewDB),
 		Override(new(*db.SQLDB), db.NewSQLDB),
 		Override(new(*pubsub.PubSub), modules.NewPubSub),

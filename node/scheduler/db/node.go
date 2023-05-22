@@ -38,7 +38,8 @@ func (n *SQLDB) UpdatePortMapping(nodeID, port string) error {
 
 // SaveValidationResultInfos inserts validation result information.
 func (n *SQLDB) SaveValidationResultInfos(infos []*types.ValidationResultInfo) error {
-	query := fmt.Sprintf(`INSERT INTO %s (round_id, node_id, validator_id, status, cid, start_time, end_time, processed) VALUES (:round_id, :node_id, :validator_id, :status, :cid, :start_time, :end_time, :processed)`, validationResultTable)
+	query := fmt.Sprintf(`INSERT INTO %s (round_id, node_id, validator_id, status, cid, start_time, end_time, calculated_profit, file_saved) 
+	                        VALUES (:round_id, :node_id, :validator_id, :status, :cid, :start_time, :end_time, :calculated_profit, :file_saved)`, validationResultTable)
 	_, err := n.db.NamedExec(query, infos)
 
 	return err
@@ -76,7 +77,7 @@ func (n *SQLDB) UpdateValidationResultsTimeout(roundID string) error {
 func (n *SQLDB) LoadValidationResultInfos(startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidationResultRsp, error) {
 	res := new(types.ListValidationResultRsp)
 	var infos []types.ValidationResultInfo
-	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM %s WHERE start_time between ? and ? order by start_time asc  LIMIT ?,? ", validationResultTable)
+	query := fmt.Sprintf("SELECT *, (duration/1e3 * bandwidth) AS `upload_traffic` FROM %s WHERE start_time between ? and ? order by start_time asc LIMIT ?,? ", validationResultTable)
 
 	if pageSize > loadValidationResultsDefaultLimit {
 		pageSize = loadValidationResultsDefaultLimit
@@ -467,7 +468,7 @@ func (n *SQLDB) LoadWorkloadRecord(tokenID string) (*types.WorkloadRecord, error
 
 // LoadWorkloadResults Load unprocessed workload results
 func (n *SQLDB) LoadWorkloadResults(limit int) (*sqlx.Rows, error) {
-	sQuery := fmt.Sprintf(`SELECT token_id, node_id, client_id, asset_id, limit_rate, create_time, expiration FROM %s WHERE status=? AND expiration<? LIMIT ?`, workloadRecordTable)
+	sQuery := fmt.Sprintf(`SELECT token_id, node_id, client_id, asset_id, limit_rate, create_time, expiration FROM %s WHERE status=? AND expiration<? order by create_time asc LIMIT ?`, workloadRecordTable)
 	return n.db.QueryxContext(context.Background(), sQuery, types.WorkloadStatusCreate, time.Now(), limit)
 }
 
@@ -507,20 +508,52 @@ func (n *SQLDB) UpdateNodeProfitsByWorkloadResult(sIDs map[string]types.Workload
 	return tx.Commit()
 }
 
-// LoadValidationResults Load unprocessed validation results
-func (n *SQLDB) LoadValidationResults(maxTime time.Time, limit int) (*sqlx.Rows, error) {
-	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE processed=? AND end_time<? LIMIT ?`, validationResultTable)
+// LoadUnCalculatedValidationResults Load not calculated profit validation results
+func (n *SQLDB) LoadUnCalculatedValidationResults(maxTime time.Time, limit int) (*sqlx.Rows, error) {
+	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE calculated_profit=? AND end_time<? order by end_time asc LIMIT ?`, validationResultTable)
 	return n.db.QueryxContext(context.Background(), sQuery, false, maxTime, limit)
+}
+
+// LoadUnSavedValidationResults Load not save to file validation results
+func (n *SQLDB) LoadUnSavedValidationResults(limit int) (*sqlx.Rows, error) {
+	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE file_saved=? AND calculated_profit=? order by end_time asc LIMIT ?`, validationResultTable)
+	return n.db.QueryxContext(context.Background(), sQuery, false, true, limit)
 }
 
 // UpdateValidationResultProfit update profit for node validation
 func (n *SQLDB) UpdateValidationResultProfit(id int, profit float64) error {
-	uQuery := fmt.Sprintf(`UPDATE %s SET profit=? WHERE id=? AND processed=?`, validationResultTable)
+	uQuery := fmt.Sprintf(`UPDATE %s SET profit=? WHERE id=? AND calculated_profit=?`, validationResultTable)
 	_, err := n.db.Exec(uQuery, profit, id, false)
 	return err
 }
 
-// UpdateNodeProfitsByValidationResult Update the gain value of the node, and set the processed flag to the validation record
+// UpdateFileSavedStatus update the file saved in validation result
+func (n *SQLDB) UpdateFileSavedStatus(ids []int) error {
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = tx.Rollback()
+		if err != nil && err != sql.ErrTxDone {
+			log.Errorf("Rollback err:%s", err.Error())
+		}
+	}()
+
+	for _, id := range ids {
+		uQuery := fmt.Sprintf(`UPDATE %s SET file_saved=? WHERE id=?`, validationResultTable)
+		_, err = tx.Exec(uQuery, true, id)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Commit
+	return tx.Commit()
+}
+
+// UpdateNodeProfitsByValidationResult Update the gain value of the node, and set the calculated flag to the validation record
 func (n *SQLDB) UpdateNodeProfitsByValidationResult(infos []*types.ValidationResultInfo, nodeProfits map[string]float64) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
@@ -537,7 +570,7 @@ func (n *SQLDB) UpdateNodeProfitsByValidationResult(infos []*types.ValidationRes
 	// update validation result info
 	for _, info := range infos {
 		// update node profit
-		uQuery := fmt.Sprintf(`UPDATE %s SET processed=?,profit=? WHERE id=?`, validationResultTable)
+		uQuery := fmt.Sprintf(`UPDATE %s SET calculated_profit=?,profit=? WHERE id=?`, validationResultTable)
 		_, err = tx.Exec(uQuery, true, info.Profit, info.ID)
 		if err != nil {
 			return err

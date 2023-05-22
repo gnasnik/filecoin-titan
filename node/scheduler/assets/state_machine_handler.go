@@ -45,7 +45,7 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 	// find nodes
 	nodes, str := m.chooseCandidateNodesForAssetReplica(seedReplicaCount, info.CandidateReplicaSucceeds)
 	if len(nodes) < 1 {
-		return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found %s", str)})
+		return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found; %s", str)})
 	}
 
 	// save to db
@@ -100,7 +100,7 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 	// find nodes
 	nodes, str := m.chooseCandidateNodesForAssetReplica(int(needCount), info.CandidateReplicaSucceeds)
 	if len(nodes) < 1 {
-		return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found %s", str)})
+		return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found; %s", str)})
 	}
 
 	// save to db
@@ -184,7 +184,7 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 	// find nodes
 	nodes, str := m.chooseEdgeNodesForAssetReplica(int(needCount), needBandwidth, info.EdgeReplicaSucceeds)
 	if len(nodes) < 1 {
-		return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found %s", str)})
+		return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found; %s", str)})
 	}
 
 	// save to db

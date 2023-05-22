@@ -55,22 +55,25 @@ var cNodeInfoTable = `
 
 var cValidationResultsTable = `
     CREATE TABLE if not exists %s (
-		id            INT UNSIGNED AUTO_INCREMENT,
-	    round_id      VARCHAR(128) NOT NULL,
-	    node_id       VARCHAR(128) NOT NULL,
-	    validator_id  VARCHAR(128) NOT NULL,
-	    cid           VARCHAR(128) NOT NULL,
-	    block_number  BIGINT       DEFAULT 0,
-	    status        TINYINT      DEFAULT 0,
-	    duration      BIGINT       DEFAULT 0,
-	    bandwidth     FLOAT        DEFAULT 0,
-	    start_time    DATETIME     DEFAULT NULL,
-	    end_time      DATETIME     DEFAULT NULL,
-		profit        FLOAT        DEFAULT 0,
-		processed     BOOLEAN,
-		token         VARCHAR(128) DEFAULT '',
+		id                INT UNSIGNED AUTO_INCREMENT,
+	    round_id          VARCHAR(128) NOT NULL,
+	    node_id           VARCHAR(128) NOT NULL,
+	    validator_id      VARCHAR(128) NOT NULL,
+	    cid               VARCHAR(128) NOT NULL,
+	    block_number      BIGINT       DEFAULT 0,
+	    status            TINYINT      DEFAULT 0,
+	    duration          BIGINT       DEFAULT 0,
+	    bandwidth         FLOAT        DEFAULT 0,
+	    start_time        DATETIME     DEFAULT NULL,
+	    end_time          DATETIME     DEFAULT NULL,
+		profit            FLOAT        DEFAULT 0,
+		calculated_profit BOOLEAN,
+		token             VARCHAR(128) DEFAULT '',
+		file_saved        BOOLEAN,
 		PRIMARY KEY (id),
-	    KEY round_node (round_id, node_id)
+	    KEY round_node (round_id, node_id),
+		KEY idx_profit (calculated_profit),
+		KEY idx_file  (file_saved)
     ) ENGINE=InnoDB COMMENT='Validation result records';`
 
 var cNodeRegisterTable = `

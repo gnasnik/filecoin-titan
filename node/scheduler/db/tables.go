@@ -68,7 +68,7 @@ var cValidationResultsTable = `
 	    end_time          DATETIME     DEFAULT NULL,
 		profit            FLOAT        DEFAULT 0,
 		calculated_profit BOOLEAN,
-		token             VARCHAR(128) DEFAULT '',
+		token_id          VARCHAR(128) DEFAULT '',
 		file_saved        BOOLEAN,
 		PRIMARY KEY (id),
 	    KEY round_node (round_id, node_id),

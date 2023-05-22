@@ -25,8 +25,6 @@ import (
 var log = logging.Logger("asset")
 
 const (
-	// Timeout for pulling assets (Unit:Second)
-	nodePullAssetTimeout = 60 * time.Second
 	// The number of pull replica in the first stage
 	seedReplicaCount = 1
 	// Interval to get asset pull progress from node (Unit:Second)

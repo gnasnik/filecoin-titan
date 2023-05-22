@@ -217,7 +217,7 @@ type SchedulerStruct struct {
 
 		NodeRemoveAssetResult func(p0 context.Context, p1 types.RemoveAssetResult) error `perm:"edge,candidate"`
 
-		NodeValidationResult func(p0 context.Context, p1 ValidationResult, p2 string) error `perm:"candidate"`
+		NodeValidationResult func(p0 context.Context, p1 io.Reader, p2 string) error `perm:"candidate"`
 
 		PullAsset func(p0 context.Context, p1 *types.PullAssetReq) error `perm:"admin"`
 
@@ -843,14 +843,14 @@ func (s *SchedulerStub) NodeRemoveAssetResult(p0 context.Context, p1 types.Remov
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) NodeValidationResult(p0 context.Context, p1 ValidationResult, p2 string) error {
+func (s *SchedulerStruct) NodeValidationResult(p0 context.Context, p1 io.Reader, p2 string) error {
 	if s.Internal.NodeValidationResult == nil {
 		return ErrNotSupported
 	}
 	return s.Internal.NodeValidationResult(p0, p1, p2)
 }
 
-func (s *SchedulerStub) NodeValidationResult(p0 context.Context, p1 ValidationResult, p2 string) error {
+func (s *SchedulerStub) NodeValidationResult(p0 context.Context, p1 io.Reader, p2 string) error {
 	return ErrNotSupported
 }
 

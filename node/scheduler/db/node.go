@@ -449,7 +449,7 @@ func (n *SQLDB) SaveWorkloadRecord(records []*types.WorkloadRecord) error {
 }
 
 func (n *SQLDB) UpdateWorkloadRecord(record *types.WorkloadRecord) error {
-	query := fmt.Sprintf(`UPDATE %s SET client_workload=:client_workload, node_workload=:client_workload WHERE token_id=:token_id`, workloadRecordTable)
+	query := fmt.Sprintf(`UPDATE %s SET client_workload=:client_workload, node_workload=:node_workload WHERE token_id=:token_id`, workloadRecordTable)
 	_, err := n.db.NamedExec(query, record)
 	return err
 }

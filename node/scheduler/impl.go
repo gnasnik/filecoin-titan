@@ -8,7 +8,6 @@ import (
 	"database/sql"
 	"encoding/gob"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -250,7 +249,7 @@ func (s *Scheduler) GetExternalAddress(ctx context.Context) (string, error) {
 }
 
 // NodeValidationResult processes the validation result for a node
-func (s *Scheduler) NodeValidationResult(ctx context.Context, result api.ValidationResult, sign string) error {
+func (s *Scheduler) NodeValidationResult(ctx context.Context, r io.Reader, sign string) error {
 	validator := handler.GetNodeID(ctx)
 	node := s.NodeManager.GetNode(validator)
 	if node == nil {
@@ -262,21 +261,27 @@ func (s *Scheduler) NodeValidationResult(ctx context.Context, result api.Validat
 		return err
 	}
 
-	bytes, err := json.Marshal(result)
+	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return err
 	}
 
 	rsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	err = rsa.VerifySign(node.PublicKey(), signBuf, bytes)
+	err = rsa.VerifySign(node.PublicKey(), signBuf, data)
 	if err != nil {
 		return err
 	}
 
-	vs := &result
-	vs.Validator = validator
+	result := &api.ValidationResult{}
+	buffer := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(buffer)
+	err = dec.Decode(result)
+	if err != nil {
+		return err
+	}
 
-	s.ValidationMgr.HandleResult(vs)
+	result.Validator = validator
+	s.ValidationMgr.HandleResult(result)
 
 	return nil
 }

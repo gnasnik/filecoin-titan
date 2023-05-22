@@ -1,12 +1,14 @@
 package candidate
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/rsa"
+	"encoding/gob"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
@@ -35,7 +37,7 @@ type blockWaiterOptions struct {
 
 // NodeValidatedResulter is the interface to return the validation result
 type NodeValidatedResulter interface {
-	NodeValidationResult(ctx context.Context, vr api.ValidationResult, sign string) error
+	NodeValidationResult(ctx context.Context, r io.Reader, sign string) error
 }
 
 // newBlockWaiter creates a new blockWaiter instance
@@ -95,18 +97,20 @@ func (bw *blockWaiter) wait() {
 
 // sendValidateResult sends the validation result
 func (bw *blockWaiter) sendValidateResult() error {
-	bytes, err := json.Marshal(bw.result)
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	err := enc.Encode(bw.result)
 	if err != nil {
 		return err
 	}
 
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	sign, err := titanRsa.Sign(bw.privateKey, bytes)
+	sign, err := titanRsa.Sign(bw.privateKey, buffer.Bytes())
 	if err != nil {
 		return xerrors.Errorf("sign validate result error: %w", err.Error())
 	}
 
-	return bw.NodeValidationResult(context.Background(), *bw.result, hex.EncodeToString(sign))
+	return bw.NodeValidationResult(context.Background(), &buffer, hex.EncodeToString(sign))
 }
 
 // calculateBandwidth calculates the bandwidth based on the block size and duration

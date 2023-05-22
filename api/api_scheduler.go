@@ -27,7 +27,7 @@ type Scheduler interface {
 	// EdgeConnect edge node login to the scheduler
 	EdgeConnect(ctx context.Context, opts *types.ConnectOptions) error //perm:edge
 	// NodeValidationResult processes the validation result for a node
-	NodeValidationResult(ctx context.Context, vr ValidationResult, sign string) error //perm:candidate
+	NodeValidationResult(ctx context.Context, r io.Reader, sign string) error //perm:candidate
 	// CandidateConnect candidate node login to the scheduler
 	CandidateConnect(ctx context.Context, opts *types.ConnectOptions) error //perm:candidate
 	// NodeRemoveAssetResult the result of an asset removal operation

@@ -11,7 +11,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/sqldb"
 )
 
-func TestSaveToken(t *testing.T) {
+func TestWorkloadRecord(t *testing.T) {
 	sqldb, err := sqldb.NewDB("user01:sql001@tcp(127.0.0.1:3306)/test")
 	if err != nil {
 		t.Errorf("NewDB error:%s", err.Error())
@@ -55,6 +55,56 @@ func TestSaveToken(t *testing.T) {
 		return
 	}
 	t.Logf("record:%#v", *record)
+
+	if len(workloadRecord.NodeWorkload) > 0 {
+		newBuffer := bytes.NewBuffer(workloadRecord.NodeWorkload)
+		dec := gob.NewDecoder(newBuffer)
+
+		workload := types.Workload{}
+		err = dec.Decode(&workload)
+		if err != nil {
+			t.Errorf("Decode node workload error:%s", err.Error())
+			return
+		}
+
+		t.Logf("decode node workload:%v", workload)
+	}
+
+	if len(workloadRecord.ClientWorkload) > 0 {
+		newBuffer := bytes.NewBuffer(workloadRecord.ClientWorkload)
+		dec := gob.NewDecoder(newBuffer)
+
+		workload := types.Workload{}
+		err = dec.Decode(&workload)
+		if err != nil {
+			t.Errorf("encode client workload error:%s", err.Error())
+			return
+		}
+
+		t.Logf("decode client workload:%v", workload)
+
+	}
+}
+
+func TestLoadWorkloadRecord(t *testing.T) {
+	sqldb, err := sqldb.NewDB("user01:sql001@tcp(127.0.0.1:3306)/test")
+	if err != nil {
+		t.Errorf("NewDB error:%s", err.Error())
+		return
+	}
+
+	db, err := db.NewSQLDB(sqldb)
+	if err != nil {
+		t.Errorf("NewSQLDB error:%s", err.Error())
+		return
+	}
+
+	id := "f8f436e5-7354-4611-a9a1-0f9286f49517"
+	workloadRecord, err := db.LoadWorkloadRecord(id)
+	if err != nil {
+		t.Errorf("LoadTokenPayloadAndWorkloads error:%s", err.Error())
+		return
+	}
 
 	if len(workloadRecord.NodeWorkload) > 0 {
 		newBuffer := bytes.NewBuffer(workloadRecord.NodeWorkload)

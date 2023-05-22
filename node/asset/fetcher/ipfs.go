@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/ipfs/go-cid"
@@ -24,7 +25,15 @@ type IPFSClient struct {
 
 // NewIPFSClient creates a new IPFSClient with the given API URL, timeout, and retry count
 func NewIPFSClient(ipfsAPIURL string) *IPFSClient {
-	httpAPI, err := httpapi.NewURLApiWithClient(ipfsAPIURL, &http.Client{})
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.MaxIdleConns = 10
+	t.IdleConnTimeout = 120 * time.Second
+
+	httpClient := &http.Client{
+		Transport: t,
+	}
+
+	httpAPI, err := httpapi.NewURLApiWithClient(ipfsAPIURL, httpClient)
 	if err != nil {
 		log.Panicf("new ipfs error:%s, url:%s", err.Error(), ipfsAPIURL)
 	}

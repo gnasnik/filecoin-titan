@@ -29,9 +29,6 @@ func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface
 // maps asset states to their corresponding planner functions
 var planners = map[AssetState]func(events []statemachine.Event, state *AssetPullingInfo) (uint64, error){
 	// external import
-	UndefinedState: planOne(
-		on(AssetStartPulls{}, SeedSelect),
-	),
 	SeedSelect: planOne(
 		on(PullRequestSent{}, SeedPulling),
 		on(SelectFailed{}, SeedFailed),
@@ -70,9 +67,6 @@ var planners = map[AssetState]func(events []statemachine.Event, state *AssetPull
 	),
 	EdgesFailed: planOne(
 		on(AssetRePull{}, EdgesSelect),
-	),
-	Remove: planOne(
-		on(AssetStartPulls{}, SeedSelect),
 	),
 }
 
@@ -119,8 +113,6 @@ func (m *Manager) plan(events []statemachine.Event, state *AssetPullingInfo) (fu
 	case Remove:
 		return m.handleRemove, processed, nil
 	// Fatal errors
-	case UndefinedState:
-		log.Error("asset update with undefined state!")
 	default:
 		log.Errorf("unexpected asset update state: %s", state.State)
 	}

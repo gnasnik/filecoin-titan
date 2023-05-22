@@ -189,12 +189,12 @@ func (m *Manager) retrieveNodePullProgresses() {
 
 func (m *Manager) requestNodePullProgresses(nodeID string, cids []string) (result *types.PullResult, err error) {
 	node := m.nodeMgr.GetNode(nodeID)
-	if node != nil {
-		result, err = node.GetAssetProgresses(context.Background(), cids)
-	} else {
+	if node == nil {
 		err = xerrors.Errorf("node %s not found", nodeID)
+		return
 	}
 
+	result, err = node.GetAssetProgresses(context.Background(), cids)
 	return
 }
 
@@ -231,7 +231,7 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 			NeedCandidateReplicas: int64(m.GetCandidateReplicaCount()),
 			Expiration:            info.Expiration,
 			NeedBandwidth:         info.Bandwidth,
-			State:                 UndefinedState.String(),
+			State:                 SeedSelect.String(),
 		}
 
 		event := &types.AssetEventInfo{Hash: info.Hash, Event: types.AssetEventAdd, Requester: userID}
@@ -241,8 +241,11 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 			return xerrors.Errorf("SaveRecordOfAsset err:%s", err.Error())
 		}
 
+		rInfo := AssetForceState{
+			State: SeedSelect,
+		}
 		// create asset task
-		return m.assetStateMachines.Send(AssetHash(info.Hash), AssetStartPulls{})
+		return m.assetStateMachines.Send(AssetHash(info.Hash), rInfo)
 	}
 
 	if exist, _ := m.assetStateMachines.Has(AssetHash(assetRecord.Hash)); !exist {
@@ -252,6 +255,10 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 	// Check if the asset is in servicing state
 	if assetRecord.State != Servicing.String() && assetRecord.State != Remove.String() {
 		return xerrors.Errorf("asset state is %s", assetRecord.State)
+	}
+
+	if info.Replicas <= assetRecord.NeedEdgeReplica && info.Bandwidth <= assetRecord.NeedBandwidth {
+		return xerrors.New("No increase in the number of replicas or bandwidth")
 	}
 
 	assetRecord.NeedEdgeReplica = info.Replicas
@@ -284,7 +291,7 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, repleni
 	}
 
 	rInfo := AssetForceState{
-		State: SeedSelect,
+		State: CandidatesSelect,
 	}
 
 	return m.assetStateMachines.Send(AssetHash(assetRecord.Hash), rInfo)

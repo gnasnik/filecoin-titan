@@ -96,14 +96,6 @@ func (evt PullRequestSent) apply(state *AssetPullingInfo) {
 	state.EdgeWaitings = evt.EdgeWaitings
 }
 
-// Normal path
-
-// AssetStartPulls start asset pulls
-type AssetStartPulls struct{}
-
-func (evt AssetStartPulls) apply(state *AssetPullingInfo) {
-}
-
 // AssetRePull re-pull the asset
 type AssetRePull struct{}
 

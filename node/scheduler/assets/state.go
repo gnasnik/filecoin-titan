@@ -5,8 +5,6 @@ type AssetState string
 
 // Constants defining various states of the asset pulling process.
 const (
-	// UndefinedState represents an undefined state.
-	UndefinedState AssetState = ""
 	// SeedSelect select first candidate to pull seed asset
 	SeedSelect AssetState = "SeedSelect"
 	// SeedPulling Waiting for candidate nodes to pull seed asset

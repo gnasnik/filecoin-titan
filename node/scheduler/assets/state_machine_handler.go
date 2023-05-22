@@ -91,6 +91,11 @@ func (m *Manager) handleSeedPulling(ctx statemachine.Context, info AssetPullingI
 func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPullingInfo) error {
 	log.Debugf("handle candidates select, %s", info.CID)
 
+	sources := m.getDownloadSources(info.CID, info.CandidateReplicaSucceeds)
+	if len(sources) < 1 {
+		return ctx.Send(SelectFailed{error: xerrors.New("source node not found")})
+	}
+
 	needCount := info.CandidateReplicas - int64(len(info.CandidateReplicaSucceeds))
 	if needCount < 1 {
 		// The number of candidate node replicas has reached the requirement
@@ -108,8 +113,6 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 	if err != nil {
 		return ctx.Send(SelectFailed{error: err})
 	}
-
-	sources := m.getDownloadSources(info.CID, info.CandidateReplicaSucceeds)
 
 	m.resetAssetNoResponseCount(info.Hash.String())
 

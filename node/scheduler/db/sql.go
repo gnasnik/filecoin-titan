@@ -37,7 +37,8 @@ const (
 	assetsViewTable       = "asset_view"
 	bucketTable           = "bucket"
 	workloadRecordTable   = "workload_record"
-	assetEventsTable      = "asset_events"
+	assetEventTable       = "asset_event"
+	userAssetTable        = "user_asset"
 
 	// Default limits for loading table entries.
 	loadNodeInfosDefaultLimit           = 100
@@ -81,7 +82,8 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 	tx.MustExec(fmt.Sprintf(cAssetViewTable, assetsViewTable))
 	tx.MustExec(fmt.Sprintf(cBucketTable, bucketTable))
 	tx.MustExec(fmt.Sprintf(cWorkloadTable, workloadRecordTable))
-	tx.MustExec(fmt.Sprintf(cAssetEventTable, assetEventsTable))
+	tx.MustExec(fmt.Sprintf(cAssetEventTable, assetEventTable))
+	tx.MustExec(fmt.Sprintf(cUserAssetTable, userAssetTable))
 
 	return tx.Commit()
 }

@@ -222,7 +222,7 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 		return xerrors.Errorf("LoadAssetRecord err:%s", err.Error())
 	}
 
-	if assetRecord == nil || assetRecord.State == Remove.String() {
+	if assetRecord == nil {
 		record := &types.AssetRecord{
 			Hash:                  info.Hash,
 			CID:                   info.CID,
@@ -250,12 +250,13 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 	}
 
 	// Check if the asset is in servicing state
-	if assetRecord.State != Servicing.String() {
+	if assetRecord.State != Servicing.String() && assetRecord.State != Remove.String() {
 		return xerrors.Errorf("asset state is %s", assetRecord.State)
 	}
 
 	assetRecord.NeedEdgeReplica = info.Replicas
 	assetRecord.Expiration = info.Expiration
+	assetRecord.NeedBandwidth = info.Bandwidth
 
 	return m.replenishAssetReplicas(assetRecord, 0, userID)
 }

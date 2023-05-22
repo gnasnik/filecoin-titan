@@ -160,3 +160,12 @@ var cAssetEventTable = `
 		details       VARCHAR(128),
 		PRIMARY KEY (id)
 	) ENGINE=InnoDB COMMENT='asset events';`
+
+var cUserAssetTable = `
+    CREATE TABLE if not exists %s (
+	    hash              VARCHAR(128) NOT NULL,
+	    user_id           VARCHAR(128) NOT NULL,
+	    created_time      DATETIME     DEFAULT NULL,
+		PRIMARY KEY (hash,user_id),
+		KEY idx_user_id (user_id)
+    ) ENGINE=InnoDB COMMENT='user asset';`

@@ -201,7 +201,7 @@ func (n *SQLDB) DeleteAssetRecord(hash string, serverID dtypes.ServerID, info *t
 
 	// asset event
 	query := fmt.Sprintf(`INSERT INTO %s (hash, event, requester, details)
-	VALUES (?, ?, ?, ?)`, assetEventsTable)
+	VALUES (?, ?, ?, ?)`, assetEventTable)
 
 	_, err = tx.Exec(query, info.Hash, info.Event, info.Requester, info.Details)
 	if err != nil {
@@ -233,7 +233,7 @@ func (n *SQLDB) DeleteAssetReplica(hash, nodeID string, info *types.AssetEventIn
 
 	// asset event
 	eQuery := fmt.Sprintf(`INSERT INTO %s (hash, event, requester, details)
-		VALUES (?, ?, ?, ?)`, assetEventsTable)
+		VALUES (?, ?, ?, ?)`, assetEventTable)
 
 	_, err = tx.Exec(eQuery, info.Hash, info.Event, info.Requester, info.Details)
 	if err != nil {
@@ -326,7 +326,7 @@ func (n *SQLDB) SaveAssetRecord(rInfo *types.AssetRecord, eInfo *types.AssetEven
 
 	// asset event
 	eQuery := fmt.Sprintf(`INSERT INTO %s (hash, event, requester, details)
-		VALUES (?, ?, ?, ?)`, assetEventsTable)
+		VALUES (?, ?, ?, ?)`, assetEventTable)
 
 	_, err = tx.Exec(eQuery, eInfo.Hash, eInfo.Event, eInfo.Requester, eInfo.Details)
 	if err != nil {
@@ -341,7 +341,7 @@ func (n *SQLDB) LoadAssetEventInfos(startTime, endTime time.Time, limit, offset 
 	res := new(types.ListAssetEventRsp)
 
 	var infos []*types.AssetEventInfo
-	query := fmt.Sprintf("SELECT * FROM %s WHERE start_time between ? and ? order by start_time asc LIMIT ? OFFSET ? ", assetEventsTable)
+	query := fmt.Sprintf("SELECT * FROM %s WHERE start_time between ? and ? order by start_time asc LIMIT ? OFFSET ? ", assetEventTable)
 
 	if limit > loadAssetEventDefaultLimit {
 		limit = loadAssetEventDefaultLimit
@@ -354,7 +354,7 @@ func (n *SQLDB) LoadAssetEventInfos(startTime, endTime time.Time, limit, offset 
 
 	res.AssetEventInfos = infos
 
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE start_time between ? and ?", assetEventsTable)
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE start_time between ? and ?", assetEventTable)
 	var count int
 	err = n.db.Get(&count, countQuery, startTime, endTime)
 	if err != nil {

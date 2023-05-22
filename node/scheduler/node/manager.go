@@ -305,37 +305,44 @@ func (m *Manager) handleValidationResults() {
 			return
 		}
 
-		data, err := m.saveValidationResultToFile(infos)
-		if err != nil {
-			log.Errorf("saveValidationResultToFile err:%s", err.Error())
-			fmt.Println(data)
-			return
-		}
+		m.saveValidationResultToFiles(infos)
 	}
 }
 
-func (m *Manager) saveValidationResultToFile(infos []*types.ValidationResultInfo) (string, error) {
-	data := ""
+func (m *Manager) saveValidationResultToFiles(infos []*types.ValidationResultInfo) {
+	ds := make(map[string]string)
+
+	saveFile := func(data, filename string) error {
+		writer, err := recordfile.NewWriter(recordfile.DirectoryNameValidation, filename)
+		if err != nil {
+			return xerrors.Errorf("NewWriter err:%s", err.Error())
+		}
+		defer writer.Close()
+
+		err = writer.WriteData(data)
+		if err != nil {
+			return xerrors.Errorf("WriteData err:%s", err.Error())
+		}
+
+		return nil
+	}
+
 	// save to file
 	for _, vInfo := range infos {
 		str := fmt.Sprintf("RoundID:%s, NodeID:%s, ValidatorID:%s, Profit:%.2f, ValidationCID:%s,EndTime:%s \n",
 			vInfo.RoundID, vInfo.NodeID, vInfo.ValidatorID, vInfo.Profit, vInfo.Cid, vInfo.EndTime.String())
-		data = fmt.Sprintf("%s%s", data, str)
+
+		filename := vInfo.EndTime.Format("20060102")
+		data := ds[filename]
+		ds[filename] = fmt.Sprintf("%s%s", data, str)
 	}
 
-	// TODO Handling error situations
-	writer, err := recordfile.NewWriter(recordfile.DirectoryNameValidation)
-	if err != nil {
-		return data, xerrors.Errorf("NewWriter err:%s", err.Error())
+	for filename, data := range ds {
+		err := saveFile(filename, data)
+		if err != nil {
+			log.Errorf("saveFile err:%s", err.Error())
+		}
 	}
-	defer writer.Close()
-
-	err = writer.WriteData(data)
-	if err != nil {
-		return data, xerrors.Errorf("WriteData err:%s", err.Error())
-	}
-
-	return data, nil
 }
 
 func (m *Manager) loadResults(maxTime time.Time) ([]*types.ValidationResultInfo, map[string]float64, error) {

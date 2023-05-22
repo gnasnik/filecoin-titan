@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"time"
 )
 
 // DirectoryName file directory
@@ -26,9 +25,7 @@ type Writer struct {
 
 // NewWriter creates a new LogFileWriter.
 // It takes a directory and filename, and creates a new file in this directory.
-func NewWriter(directory DirectoryName) (*Writer, error) {
-	filename := time.Now().Format("20060102")
-
+func NewWriter(directory DirectoryName, filename string) (*Writer, error) {
 	dir := string(directory)
 	err := os.MkdirAll(dir, 0o755)
 	if err != nil {

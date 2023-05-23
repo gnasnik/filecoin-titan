@@ -93,11 +93,32 @@ func (c *Client) ServerRegister(t context.Context, serverID, nodeType, value str
 	// lease keepalive response queue capacity only 16 , so need to read it
 	go func() {
 		for {
-			<-keepRespChan
+			ch := <-keepRespChan
+			if ch == nil {
+				c.startRegisterTimer(serverID, nodeType, value)
+				return
+			}
 		}
 	}()
 
 	return nil
+}
+
+func (c *Client) startRegisterTimer(serverID, nodeType, value string) {
+	interval := 10 * time.Second
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		<-ticker.C
+		err := c.ServerRegister(context.Background(), serverID, nodeType, value)
+		if err != nil {
+			fmt.Printf("register to etcd server err: %v \n", err.Error())
+		} else {
+			return
+		}
+	}
 }
 
 // WatchServers watch server login and logout
@@ -211,7 +232,10 @@ func (c *Client) AcquireMasterLock(serverType string, lID int64) (int64, error) 
 	// lease keepalive response queue capacity only 16 , so need to read it
 	go func() {
 		for {
-			<-keepRespChan
+			ch := <-keepRespChan
+			if ch == nil {
+				return
+			}
 		}
 	}()
 

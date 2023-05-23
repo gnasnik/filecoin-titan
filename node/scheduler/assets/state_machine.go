@@ -68,6 +68,7 @@ var planners = map[AssetState]func(events []statemachine.Event, state *AssetPull
 	EdgesFailed: planOne(
 		on(AssetRePull{}, EdgesSelect),
 	),
+	Remove: planOne(),
 }
 
 // plan creates a plan for the next asset pulling action based on the given events and asset state
@@ -192,6 +193,10 @@ func (m *Manager) initStateMachines(ctx context.Context) error {
 	}
 
 	for _, asset := range list {
+		if asset.State == Remove || asset.State == Servicing {
+			continue
+		}
+
 		if err := m.assetStateMachines.Send(asset.Hash, PullAssetRestart{}); err != nil {
 			log.Errorf("initStateMachines asset send %s , err %s", asset.CID, err.Error())
 			continue

@@ -68,9 +68,13 @@ func (evt InfoUpdate) applyGlobal(state *AssetPullingInfo) bool {
 	return true
 }
 
+func (evt InfoUpdate) Ignore() {
+}
+
 // PulledResult represents the result of node pulling
 type PulledResult struct {
 	ResultInfo *NodePulledResult
+	Msg        string
 }
 
 func (evt PulledResult) apply(state *AssetPullingInfo) {
@@ -83,6 +87,9 @@ func (evt PulledResult) apply(state *AssetPullingInfo) {
 		state.Size = rInfo.Size
 		state.Blocks = rInfo.BlocksCount
 	}
+}
+
+func (evt PulledResult) Ignore() {
 }
 
 // PullRequestSent indicates that a pull request has been sent
@@ -103,6 +110,9 @@ func (evt AssetRePull) apply(state *AssetPullingInfo) {
 	state.RetryCount++
 }
 
+func (evt AssetRePull) Ignore() {
+}
+
 // PullSucceed indicates that a node has successfully pulled an asset
 type PullSucceed struct{}
 
@@ -114,6 +124,9 @@ func (evt PullSucceed) apply(state *AssetPullingInfo) {
 	if state.State == EdgesPulling {
 		state.ReplenishReplicas = 0
 	}
+}
+
+func (evt PullSucceed) Ignore() {
 }
 
 // SkipStep skips the current step
@@ -128,6 +141,9 @@ type PullFailed struct{ error }
 func (evt PullFailed) FormatError(xerrors.Printer) (next error) { return evt.error }
 
 func (evt PullFailed) apply(state *AssetPullingInfo) {
+}
+
+func (evt PullFailed) Ignore() {
 }
 
 // SelectFailed  indicates that node selection has failed

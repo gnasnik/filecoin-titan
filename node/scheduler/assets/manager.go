@@ -241,11 +241,8 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 			return xerrors.Errorf("SaveRecordOfAsset err:%s", err.Error())
 		}
 
-		rInfo := AssetForceState{
-			State: SeedSelect,
-		}
 		// create asset task
-		return m.assetStateMachines.Send(AssetHash(info.Hash), rInfo)
+		return m.assetStateMachines.Send(AssetHash(info.Hash), PullAssetRestart{})
 	}
 
 	if exist, _ := m.assetStateMachines.Has(AssetHash(assetRecord.Hash)); !exist {
@@ -257,6 +254,11 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 		return xerrors.Errorf("asset state is %s", assetRecord.State)
 	}
 
+	if assetRecord.State == Remove.String() {
+		assetRecord.NeedEdgeReplica = 0
+		assetRecord.NeedBandwidth = 0
+	}
+
 	if info.Replicas <= assetRecord.NeedEdgeReplica && info.Bandwidth <= assetRecord.NeedBandwidth {
 		return xerrors.New("No increase in the number of replicas or bandwidth")
 	}
@@ -265,11 +267,11 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 	assetRecord.Expiration = info.Expiration
 	assetRecord.NeedBandwidth = info.Bandwidth
 
-	return m.replenishAssetReplicas(assetRecord, 0, userID)
+	return m.replenishAssetReplicas(assetRecord, 0, userID, "", SeedSelect)
 }
 
 // replenishAssetReplicas updates the existing asset replicas if needed
-func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, replenishReplicas int64, userID string) error {
+func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, replenishReplicas int64, userID, details string, state AssetState) error {
 	log.Warnf("replenishAssetReplicas SaveRecordOfAsset : %d", replenishReplicas)
 
 	record := &types.AssetRecord{
@@ -281,20 +283,17 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, repleni
 		Expiration:            assetRecord.Expiration,
 		ReplenishReplicas:     replenishReplicas,
 		NeedBandwidth:         assetRecord.NeedBandwidth,
+		State:                 state.String(),
 	}
 
-	event := &types.AssetEventInfo{Hash: assetRecord.Hash, Event: types.AssetEventAdd, Requester: userID}
+	event := &types.AssetEventInfo{Hash: assetRecord.Hash, Event: types.AssetEventAdd, Requester: userID, Details: details}
 
 	err := m.SaveAssetRecord(record, event)
 	if err != nil {
 		return xerrors.Errorf("SaveRecordOfAsset err:%s", err.Error())
 	}
 
-	rInfo := AssetForceState{
-		State: CandidatesSelect,
-	}
-
-	return m.assetStateMachines.Send(AssetHash(assetRecord.Hash), rInfo)
+	return m.assetStateMachines.Send(AssetHash(assetRecord.Hash), PullAssetRestart{})
 }
 
 // RestartPullAssets restarts asset pulls
@@ -421,6 +420,7 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 				Size:        progress.Size,
 				IsCandidate: isCandidate,
 			},
+			Msg: "result",
 		})
 		if err != nil {
 			log.Errorf("updateAssetPullResults %s statemachine send err:%s", nodeID, err.Error())
@@ -479,11 +479,11 @@ func (m *Manager) processMissingAssetReplicas() {
 			continue
 		}
 
-		if cInfo.State != Servicing.String() {
+		if cInfo.State != Servicing.String() && cInfo.State != EdgesFailed.String() {
 			continue
 		}
 
-		effectiveEdges, err := m.checkAssetReliability(cInfo.Hash)
+		effectiveEdges, details, err := m.checkAssetReliability(cInfo.Hash)
 		if err != nil {
 			log.Errorf("checkAssetReliability err: %s", err.Error())
 			continue
@@ -491,13 +491,13 @@ func (m *Manager) processMissingAssetReplicas() {
 
 		missingEdges := cInfo.NeedEdgeReplica - int64(effectiveEdges)
 
-		if missingEdges <= 0 {
+		if missingEdges <= 0 && cInfo.State == Servicing.String() {
 			// Asset are healthy and do not need to be replenish replicas
 			continue
 		}
 
 		// do replenish replicas
-		err = m.replenishAssetReplicas(cInfo, missingEdges, string(m.nodeMgr.ServerID))
+		err = m.replenishAssetReplicas(cInfo, missingEdges, string(m.nodeMgr.ServerID), details, CandidatesSelect)
 		if err != nil {
 			log.Errorf("replenishAssetReplicas err: %s", err.Error())
 			continue
@@ -506,7 +506,7 @@ func (m *Manager) processMissingAssetReplicas() {
 }
 
 // Check the reliability of assets
-func (m *Manager) checkAssetReliability(hash string) (effectiveEdges int, outErr error) {
+func (m *Manager) checkAssetReliability(hash string) (effectiveEdges int, details string, outErr error) {
 	// loading asset replicas
 	rRows, outErr := m.LoadReplicasByHash(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
 	if outErr != nil {
@@ -514,6 +514,8 @@ func (m *Manager) checkAssetReliability(hash string) (effectiveEdges int, outErr
 		return
 	}
 	defer rRows.Close()
+
+	details = "offline node:"
 
 	for rRows.Next() {
 		rInfo := &types.ReplicaInfo{}
@@ -531,12 +533,14 @@ func (m *Manager) checkAssetReliability(hash string) (effectiveEdges int, outErr
 			continue
 		}
 
+		if rInfo.IsCandidate {
+			continue
+		}
+
 		if lastSeen.Add(maxNodeOfflineTime).After(time.Now()) {
-			if !rInfo.IsCandidate {
-				effectiveEdges++
-			}
+			effectiveEdges++
 		} else {
-			log.Warnf("offline node %s", nodeID)
+			details = fmt.Sprintf("%s%s,", details, nodeID)
 		}
 	}
 

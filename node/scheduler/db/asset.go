@@ -319,7 +319,7 @@ func (n *SQLDB) SaveAssetRecord(rInfo *types.AssetRecord, eInfo *types.AssetEven
 		`INSERT INTO %s (hash, state, replenish_replicas) 
 		        VALUES (?, ?, ?) 
 				ON DUPLICATE KEY UPDATE state=?, replenish_replicas=?`, assetStateTable(rInfo.ServerID))
-	_, err = tx.Exec(query, rInfo.Hash, "", rInfo.ReplenishReplicas, "", rInfo.ReplenishReplicas)
+	_, err = tx.Exec(query, rInfo.Hash, rInfo.State, rInfo.ReplenishReplicas, rInfo.State, rInfo.ReplenishReplicas)
 	if err != nil {
 		return err
 	}

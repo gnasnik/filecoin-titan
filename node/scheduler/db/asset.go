@@ -341,7 +341,7 @@ func (n *SQLDB) LoadAssetEventInfos(startTime, endTime time.Time, limit, offset 
 	res := new(types.ListAssetEventRsp)
 
 	var infos []*types.AssetEventInfo
-	query := fmt.Sprintf("SELECT * FROM %s WHERE start_time between ? and ? order by start_time asc LIMIT ? OFFSET ? ", assetEventTable)
+	query := fmt.Sprintf("SELECT * FROM %s WHERE created_time between ? and ? order by created_time asc LIMIT ? OFFSET ? ", assetEventTable)
 
 	if limit > loadAssetEventDefaultLimit {
 		limit = loadAssetEventDefaultLimit
@@ -354,7 +354,7 @@ func (n *SQLDB) LoadAssetEventInfos(startTime, endTime time.Time, limit, offset 
 
 	res.AssetEventInfos = infos
 
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE start_time between ? and ?", assetEventTable)
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE created_time between ? and ?", assetEventTable)
 	var count int
 	err = n.db.Get(&count, countQuery, startTime, endTime)
 	if err != nil {

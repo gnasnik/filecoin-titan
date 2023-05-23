@@ -231,7 +231,6 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 			NeedCandidateReplicas: int64(m.GetCandidateReplicaCount()),
 			Expiration:            info.Expiration,
 			NeedBandwidth:         info.Bandwidth,
-			State:                 SeedSelect.String(),
 		}
 
 		event := &types.AssetEventInfo{Hash: info.Hash, Event: types.AssetEventAdd, Requester: userID}
@@ -241,8 +240,13 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 			return xerrors.Errorf("SaveRecordOfAsset err:%s", err.Error())
 		}
 
+		rInfo := AssetForceState{
+			State:     SeedSelect,
+			Requester: userID,
+		}
+
 		// create asset task
-		return m.assetStateMachines.Send(AssetHash(info.Hash), PullAssetRestart{})
+		return m.assetStateMachines.Send(AssetHash(info.Hash), rInfo)
 	}
 
 	if exist, _ := m.assetStateMachines.Has(AssetHash(assetRecord.Hash)); !exist {
@@ -283,7 +287,6 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, repleni
 		Expiration:            assetRecord.Expiration,
 		ReplenishReplicas:     replenishReplicas,
 		NeedBandwidth:         assetRecord.NeedBandwidth,
-		State:                 state.String(),
 	}
 
 	event := &types.AssetEventInfo{Hash: assetRecord.Hash, Event: types.AssetEventAdd, Requester: userID, Details: details}
@@ -293,7 +296,12 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, repleni
 		return xerrors.Errorf("SaveRecordOfAsset err:%s", err.Error())
 	}
 
-	return m.assetStateMachines.Send(AssetHash(assetRecord.Hash), PullAssetRestart{})
+	rInfo := AssetForceState{
+		State:     state,
+		Requester: userID,
+	}
+
+	return m.assetStateMachines.Send(AssetHash(assetRecord.Hash), rInfo)
 }
 
 // RestartPullAssets restarts asset pulls

@@ -260,6 +260,7 @@ func (m *Manager) handlePullsFailed(ctx statemachine.Context, info AssetPullingI
 
 func (m *Manager) handleRemove(ctx statemachine.Context, info AssetPullingInfo) error {
 	log.Infof("handle remove: %s", info.CID)
+	m.stopAssetCount(info.Hash.String())
 
 	hash := info.Hash.String()
 	cid := info.CID

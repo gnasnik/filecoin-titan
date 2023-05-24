@@ -78,10 +78,10 @@ var cValidationResultsTable = `
 
 var cNodeRegisterTable = `
 	CREATE TABLE if not exists %s (
-		node_id     VARCHAR(128)  NOT NULL UNIQUE,
-		public_key  VARCHAR(1024) DEFAULT '' ,
-		create_time VARCHAR(64)   DEFAULT '' ,
-		node_type   VARCHAR(64)   DEFAULT '' ,
+		node_id      VARCHAR(128)  NOT NULL UNIQUE,
+		public_key   VARCHAR(1024) DEFAULT '' ,
+		created_time VARCHAR(64)   DEFAULT '' ,
+		node_type    VARCHAR(64)   DEFAULT '' ,
 		PRIMARY KEY (node_id)
 	) ENGINE=InnoDB COMMENT='node register info';`
 
@@ -142,7 +142,7 @@ var cWorkloadTable = `
 		client_id       VARCHAR(128) NOT NULL,
 		asset_id        VARCHAR(128) NOT NULL,
 		limit_rate      INT          DEFAULT 0,
-		create_time     DATETIME     NOT NULL,
+		created_time    DATETIME     NOT NULL,
 		expiration      DATETIME     NOT NULL,
 		client_workload BLOB ,
 		node_workload   BLOB ,

@@ -39,7 +39,7 @@ type AssetRecord struct {
 	TotalSize             int64           `db:"total_size"`
 	TotalBlocks           int64           `db:"total_blocks"`
 	Expiration            time.Time       `db:"expiration"`
-	CreateTime            time.Time       `db:"created_time"`
+	CreatedTime           time.Time       `db:"created_time"`
 	EndTime               time.Time       `db:"end_time"`
 	NeedCandidateReplicas int64           `db:"candidate_replicas"`
 	ServerID              dtypes.ServerID `db:"scheduler_sid"`

@@ -337,7 +337,7 @@ func (m *Manager) loadResults(maxTime time.Time) ([]*types.ValidationResultInfo,
 			}
 
 			// check time
-			if record.CreateTime.After(vInfo.EndTime) {
+			if record.CreatedTime.After(vInfo.EndTime) {
 				vInfo.Profit = 0
 			}
 

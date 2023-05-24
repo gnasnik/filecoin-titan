@@ -272,13 +272,13 @@ const (
 
 // TokenPayload payload of token
 type TokenPayload struct {
-	ID         string    `db:"token_id"`
-	NodeID     string    `db:"node_id"`
-	AssetCID   string    `db:"asset_id"`
-	ClientID   string    `db:"client_id"`
-	LimitRate  int64     `db:"limit_rate"`
-	CreateTime time.Time `db:"create_time"`
-	Expiration time.Time `db:"expiration"`
+	ID          string    `db:"token_id"`
+	NodeID      string    `db:"node_id"`
+	AssetCID    string    `db:"asset_id"`
+	ClientID    string    `db:"client_id"`
+	LimitRate   int64     `db:"limit_rate"`
+	CreatedTime time.Time `db:"created_time"`
+	Expiration  time.Time `db:"expiration"`
 }
 
 // Token access download asset

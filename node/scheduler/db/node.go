@@ -220,7 +220,7 @@ func (n *SQLDB) UpdateNodeInfos(nodeID string, onlineTime int, uploadTraffic, do
 
 // SaveNodeRegisterInfo Insert Node register info
 func (n *SQLDB) SaveNodeRegisterInfo(pKey, nodeID string, nodeType types.NodeType) error {
-	query := fmt.Sprintf(`INSERT INTO %s (node_id, public_key, create_time, node_type)
+	query := fmt.Sprintf(`INSERT INTO %s (node_id, public_key, created_time, node_type)
 	VALUES (?, ?, NOW(), ?)`, nodeRegisterTable)
 
 	_, err := n.db.Exec(query, nodeID, pKey, nodeType)
@@ -442,8 +442,8 @@ func (n *SQLDB) DeleteBucket(bucketID string) error {
 
 func (n *SQLDB) SaveWorkloadRecord(records []*types.WorkloadRecord) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (token_id, node_id, client_id, asset_id, limit_rate, create_time, expiration, client_workload, node_workload, status) 
-				VALUES (:token_id, :node_id, :client_id, :asset_id, :limit_rate, :create_time, :expiration, :client_workload, :node_workload, :status)`, workloadRecordTable)
+		`INSERT INTO %s (token_id, node_id, client_id, asset_id, limit_rate, created_time, expiration, client_workload, node_workload, status) 
+				VALUES (:token_id, :node_id, :client_id, :asset_id, :limit_rate, :created_time, :expiration, :client_workload, :node_workload, :status)`, workloadRecordTable)
 
 	_, err := n.db.NamedExec(query, records)
 	return err
@@ -456,7 +456,7 @@ func (n *SQLDB) UpdateWorkloadRecord(record *types.WorkloadRecord) error {
 }
 
 func (n *SQLDB) LoadWorkloadRecord(tokenID string) (*types.WorkloadRecord, error) {
-	query := fmt.Sprintf(`SELECT token_id, node_id, client_id, asset_id, limit_rate, create_time, expiration, client_workload, node_workload, status FROM %s WHERE token_id=?`, workloadRecordTable)
+	query := fmt.Sprintf(`SELECT token_id, node_id, client_id, asset_id, limit_rate, created_time, expiration, client_workload, node_workload, status FROM %s WHERE token_id=?`, workloadRecordTable)
 	var record types.WorkloadRecord
 	err := n.db.Get(&record, query, tokenID)
 	if err != nil {
@@ -468,7 +468,7 @@ func (n *SQLDB) LoadWorkloadRecord(tokenID string) (*types.WorkloadRecord, error
 
 // LoadUnprocessedWorkloadResults Load unprocessed workload results
 func (n *SQLDB) LoadUnprocessedWorkloadResults(limit int) (*sqlx.Rows, error) {
-	sQuery := fmt.Sprintf(`SELECT token_id, node_id, client_id, asset_id, limit_rate, create_time, expiration FROM %s WHERE status=? AND expiration<? order by create_time asc LIMIT ?`, workloadRecordTable)
+	sQuery := fmt.Sprintf(`SELECT token_id, node_id, client_id, asset_id, limit_rate, created_time, expiration FROM %s WHERE status=? AND expiration<? order by created_time asc LIMIT ?`, workloadRecordTable)
 	return n.db.QueryxContext(context.Background(), sQuery, types.WorkloadStatusCreate, time.Now(), limit)
 }
 

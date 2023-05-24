@@ -260,7 +260,7 @@ var listAssetRecordCmd = &cli.Command{
 			tablewriter.Col("State"),
 			tablewriter.Col("Blocks"),
 			tablewriter.Col("Size"),
-			tablewriter.Col("CreateTime"),
+			tablewriter.Col("CreatedTime"),
 			tablewriter.Col("Expiration"),
 			tablewriter.NewLineCol("Processes"),
 		)
@@ -273,12 +273,12 @@ var listAssetRecordCmd = &cli.Command{
 		for w := 0; w < len(list); w++ {
 			info := list[w]
 			m := map[string]interface{}{
-				"CID":        info.CID,
-				"State":      colorState(info.State),
-				"Blocks":     info.TotalBlocks,
-				"Size":       units.BytesSize(float64(info.TotalSize)),
-				"CreateTime": info.CreateTime.Format(defaultDateTimeLayout),
-				"Expiration": info.Expiration.Format(defaultDateTimeLayout),
+				"CID":         info.CID,
+				"State":       colorState(info.State),
+				"Blocks":      info.TotalBlocks,
+				"Size":        units.BytesSize(float64(info.TotalSize)),
+				"CreatedTime": info.CreatedTime.Format(defaultDateTimeLayout),
+				"Expiration":  info.Expiration.Format(defaultDateTimeLayout),
 			}
 
 			sort.Slice(info.ReplicaInfos, func(i, j int) bool {

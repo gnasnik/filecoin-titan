@@ -219,12 +219,12 @@ func (n *Node) UpdateNodePort(port string) {
 // Token returns the token of the node
 func (n *Node) Token(cid string, titanRsa *titanrsa.Rsa, privateKey *rsa.PrivateKey) (*types.Token, *types.TokenPayload, error) {
 	tkPayload := &types.TokenPayload{
-		ID:         uuid.NewString(),
-		NodeID:     n.NodeID,
-		AssetCID:   cid,
-		ClientID:   uuid.NewString(), // TODO auth client and allocate id
-		CreateTime: time.Now(),
-		Expiration: time.Now().Add(10 * time.Hour),
+		ID:          uuid.NewString(),
+		NodeID:      n.NodeID,
+		AssetCID:    cid,
+		ClientID:    uuid.NewString(), // TODO auth client and allocate id
+		CreatedTime: time.Now(),
+		Expiration:  time.Now().Add(10 * time.Hour),
 	}
 
 	b, err := n.encryptTokenPayload(tkPayload, n.publicKey, titanRsa)

@@ -83,7 +83,7 @@ func (m *Manager) handleWorkloadResult() {
 
 	// do handle workload result
 	for {
-		rows, err := m.LoadWorkloadResults(vWorkloadLimit)
+		rows, err := m.LoadUnprocessedWorkloadResults(vWorkloadLimit)
 		if err != nil {
 			log.Errorf("LoadWorkloadResults err:%s", err.Error())
 			return

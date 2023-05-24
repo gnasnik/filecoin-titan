@@ -466,10 +466,40 @@ func (n *SQLDB) LoadWorkloadRecord(tokenID string) (*types.WorkloadRecord, error
 	return &record, nil
 }
 
-// LoadWorkloadResults Load unprocessed workload results
-func (n *SQLDB) LoadWorkloadResults(limit int) (*sqlx.Rows, error) {
+// LoadUnprocessedWorkloadResults Load unprocessed workload results
+func (n *SQLDB) LoadUnprocessedWorkloadResults(limit int) (*sqlx.Rows, error) {
 	sQuery := fmt.Sprintf(`SELECT token_id, node_id, client_id, asset_id, limit_rate, create_time, expiration FROM %s WHERE status=? AND expiration<? order by create_time asc LIMIT ?`, workloadRecordTable)
 	return n.db.QueryxContext(context.Background(), sQuery, types.WorkloadStatusCreate, time.Now(), limit)
+}
+
+// LoadWorkloadResults Load workload results
+func (n *SQLDB) LoadWorkloadResults(startTime, endTime time.Time, limit, offset int) (*types.ListWorkloadResultRsp, error) {
+	res := new(types.ListWorkloadResultRsp)
+
+	var infos []*types.WorkloadRecord
+	query := fmt.Sprintf("SELECT * FROM %s WHERE created_time between ? and ? order by created_time asc LIMIT ? OFFSET ? ", workloadRecordTable)
+
+	if limit > loadWorkloadDefaultLimit {
+		limit = loadWorkloadDefaultLimit
+	}
+
+	err := n.db.Select(&infos, query, startTime, endTime, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	res.WorkloadRecordInfos = infos
+
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE created_time between ? and ?", workloadRecordTable)
+	var count int
+	err = n.db.Get(&count, countQuery, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Total = count
+
+	return res, nil
 }
 
 // UpdateNodeProfitsByWorkloadResult Update the gain value of the node, and set the processed flag to the workload record

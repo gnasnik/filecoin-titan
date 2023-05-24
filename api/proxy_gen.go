@@ -175,7 +175,7 @@ type SchedulerStruct struct {
 
 		EdgeConnect func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"edge"`
 
-		GetAssetEvents func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListAssetEventRsp, error) `perm:"web"`
+		GetAssetEvents func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListAssetEventRsp, error) `perm:"web,admin"`
 
 		GetAssetListForBucket func(p0 context.Context, p1 uint32) ([]string, error) `perm:"edge,candidate"`
 
@@ -206,6 +206,10 @@ type SchedulerStruct struct {
 		GetValidationInfo func(p0 context.Context) (*types.ValidationInfo, error) `perm:"web,admin"`
 
 		GetValidationResults func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidationResultRsp, error) `perm:"web,admin"`
+
+		GetWorkloadResult func(p0 context.Context, p1 string) (*types.WorkloadRecord, error) `perm:"web,admin"`
+
+		GetWorkloadResults func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListWorkloadResultRsp, error) `perm:"web,admin"`
 
 		NatPunch func(p0 context.Context, p1 *types.NatPunchReq) error `perm:"default"`
 
@@ -785,6 +789,28 @@ func (s *SchedulerStruct) GetValidationResults(p0 context.Context, p1 time.Time,
 }
 
 func (s *SchedulerStub) GetValidationResults(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidationResultRsp, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetWorkloadResult(p0 context.Context, p1 string) (*types.WorkloadRecord, error) {
+	if s.Internal.GetWorkloadResult == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetWorkloadResult(p0, p1)
+}
+
+func (s *SchedulerStub) GetWorkloadResult(p0 context.Context, p1 string) (*types.WorkloadRecord, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetWorkloadResults(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListWorkloadResultRsp, error) {
+	if s.Internal.GetWorkloadResults == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetWorkloadResults(p0, p1, p2, p3, p4)
+}
+
+func (s *SchedulerStub) GetWorkloadResults(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListWorkloadResultRsp, error) {
 	return nil, ErrNotSupported
 }
 

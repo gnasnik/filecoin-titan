@@ -47,6 +47,7 @@ const (
 	loadAssetRecordsDefaultLimit        = 100
 	loadExpiredAssetRecordsDefaultLimit = 100
 	loadAssetEventDefaultLimit          = 100
+	loadWorkloadDefaultLimit            = 100
 )
 
 // assetStateTable returns the asset state table name for the given serverID.

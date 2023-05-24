@@ -472,9 +472,9 @@ func (n *SQLDB) LoadUnprocessedWorkloadResults(limit int) (*sqlx.Rows, error) {
 	return n.db.QueryxContext(context.Background(), sQuery, types.WorkloadStatusCreate, time.Now(), limit)
 }
 
-// LoadWorkloadResults Load workload results
-func (n *SQLDB) LoadWorkloadResults(startTime, endTime time.Time, limit, offset int) (*types.ListWorkloadResultRsp, error) {
-	res := new(types.ListWorkloadResultRsp)
+// LoadWorkloadRecords Load workload records
+func (n *SQLDB) LoadWorkloadRecords(startTime, endTime time.Time, limit, offset int) (*types.ListWorkloadRecordRsp, error) {
+	res := new(types.ListWorkloadRecordRsp)
 
 	var infos []*types.WorkloadRecord
 	query := fmt.Sprintf("SELECT * FROM %s WHERE created_time between ? and ? order by created_time asc LIMIT ? OFFSET ? ", workloadRecordTable)

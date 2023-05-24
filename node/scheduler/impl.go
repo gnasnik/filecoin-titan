@@ -710,12 +710,12 @@ func (s *Scheduler) SubmitNodeWorkloadReport(ctx context.Context, r io.Reader) e
 	return s.WorkloadManager.HandleNodeWorkload(data, nodeID)
 }
 
-// GetWorkloadResults retrieves a list of workload results.
-func (s *Scheduler) GetWorkloadResults(ctx context.Context, startTime, endTime time.Time, limit, offset int) (*types.ListWorkloadResultRsp, error) {
-	return s.NodeManager.LoadWorkloadResults(startTime, endTime, limit, offset)
+// GetWorkloadRecords retrieves a list of workload results.
+func (s *Scheduler) GetWorkloadRecords(ctx context.Context, startTime, endTime time.Time, limit, offset int) (*types.ListWorkloadRecordRsp, error) {
+	return s.NodeManager.LoadWorkloadRecords(startTime, endTime, limit, offset)
 }
 
-// GetWorkloadResult retrieves workload result.
-func (s *Scheduler) GetWorkloadResult(ctx context.Context, tokenID string) (*types.WorkloadRecord, error) {
+// GetWorkloadRecord retrieves workload result.
+func (s *Scheduler) GetWorkloadRecord(ctx context.Context, tokenID string) (*types.WorkloadRecord, error) {
 	return s.NodeManager.LoadWorkloadRecord(tokenID)
 }

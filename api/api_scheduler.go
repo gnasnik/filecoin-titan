@@ -82,10 +82,10 @@ type Scheduler interface {
 	SubmitNodeWorkloadReport(ctx context.Context, r io.Reader) error //perm:edge,candidate
 	// GetAssetEvents retrieves a list of asset events with pagination using the specified limit, offset, and time
 	GetAssetEvents(ctx context.Context, startTime, endTime time.Time, limit, offset int) (*types.ListAssetEventRsp, error) //perm:web,admin
-	// GetWorkloadResults retrieves a list of workload results with pagination using the specified limit, offset, and time
-	GetWorkloadResults(ctx context.Context, startTime, endTime time.Time, limit, offset int) (*types.ListWorkloadResultRsp, error) //perm:web,admin
-	// GetWorkloadResult retrieves result with tokenID
-	GetWorkloadResult(ctx context.Context, tokenID string) (*types.WorkloadRecord, error) //perm:web,admin
+	// GetWorkloadRecords retrieves a list of workload results with pagination using the specified limit, offset, and time
+	GetWorkloadRecords(ctx context.Context, startTime, endTime time.Time, limit, offset int) (*types.ListWorkloadRecordRsp, error) //perm:web,admin
+	// GetWorkloadRecord retrieves result with tokenID
+	GetWorkloadRecord(ctx context.Context, tokenID string) (*types.WorkloadRecord, error) //perm:web,admin
 
 	// Server-related methods
 	// GetSchedulerPublicKey retrieves the scheduler's public key in PEM format

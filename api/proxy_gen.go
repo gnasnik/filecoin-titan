@@ -207,9 +207,9 @@ type SchedulerStruct struct {
 
 		GetValidationResults func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListValidationResultRsp, error) `perm:"web,admin"`
 
-		GetWorkloadResult func(p0 context.Context, p1 string) (*types.WorkloadRecord, error) `perm:"web,admin"`
+		GetWorkloadRecord func(p0 context.Context, p1 string) (*types.WorkloadRecord, error) `perm:"web,admin"`
 
-		GetWorkloadResults func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListWorkloadResultRsp, error) `perm:"web,admin"`
+		GetWorkloadRecords func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListWorkloadRecordRsp, error) `perm:"web,admin"`
 
 		NatPunch func(p0 context.Context, p1 *types.NatPunchReq) error `perm:"default"`
 
@@ -792,25 +792,25 @@ func (s *SchedulerStub) GetValidationResults(p0 context.Context, p1 time.Time, p
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetWorkloadResult(p0 context.Context, p1 string) (*types.WorkloadRecord, error) {
-	if s.Internal.GetWorkloadResult == nil {
+func (s *SchedulerStruct) GetWorkloadRecord(p0 context.Context, p1 string) (*types.WorkloadRecord, error) {
+	if s.Internal.GetWorkloadRecord == nil {
 		return nil, ErrNotSupported
 	}
-	return s.Internal.GetWorkloadResult(p0, p1)
+	return s.Internal.GetWorkloadRecord(p0, p1)
 }
 
-func (s *SchedulerStub) GetWorkloadResult(p0 context.Context, p1 string) (*types.WorkloadRecord, error) {
+func (s *SchedulerStub) GetWorkloadRecord(p0 context.Context, p1 string) (*types.WorkloadRecord, error) {
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetWorkloadResults(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListWorkloadResultRsp, error) {
-	if s.Internal.GetWorkloadResults == nil {
+func (s *SchedulerStruct) GetWorkloadRecords(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListWorkloadRecordRsp, error) {
+	if s.Internal.GetWorkloadRecords == nil {
 		return nil, ErrNotSupported
 	}
-	return s.Internal.GetWorkloadResults(p0, p1, p2, p3, p4)
+	return s.Internal.GetWorkloadRecords(p0, p1, p2, p3, p4)
 }
 
-func (s *SchedulerStub) GetWorkloadResults(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListWorkloadResultRsp, error) {
+func (s *SchedulerStub) GetWorkloadRecords(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListWorkloadRecordRsp, error) {
 	return nil, ErrNotSupported
 }
 

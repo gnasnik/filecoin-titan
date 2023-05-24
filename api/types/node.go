@@ -208,8 +208,8 @@ type ListValidationResultRsp struct {
 	ValidationResultInfos []ValidationResultInfo `json:"validation_result_infos"`
 }
 
-// ListWorkloadResultRsp list workload result
-type ListWorkloadResultRsp struct {
+// ListWorkloadRecordRsp list workload result
+type ListWorkloadRecordRsp struct {
 	Total               int               `json:"total"`
 	WorkloadRecordInfos []*WorkloadRecord `json:"workload_result_infos"`
 }

@@ -709,3 +709,8 @@ func (s *Scheduler) SubmitNodeWorkloadReport(ctx context.Context, r io.Reader) e
 
 	return s.WorkloadManager.HandleNodeWorkload(data, nodeID)
 }
+
+// GetWorkloadResults retrieves a list of workload results.
+func (s *Scheduler) GetWorkloadResults(ctx context.Context, startTime, endTime time.Time, limit, offset int) (*types.ListWorkloadResultRsp, error) {
+	return nil, nil
+}

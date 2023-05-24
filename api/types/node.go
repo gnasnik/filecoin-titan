@@ -208,6 +208,12 @@ type ListValidationResultRsp struct {
 	ValidationResultInfos []ValidationResultInfo `json:"validation_result_infos"`
 }
 
+// ListWorkloadResultRsp list workload result
+type ListWorkloadResultRsp struct {
+	Total               int              `json:"total"`
+	WorkloadRecordInfos []WorkloadRecord `json:"workload_result_infos"`
+}
+
 // ValidationResultInfo validator result info
 type ValidationResultInfo struct {
 	ID               int              `db:"id"`
@@ -289,6 +295,7 @@ type Workload struct {
 	DownloadSize  int64
 	StartTime     int64
 	EndTime       int64
+	BlockCount    int64
 }
 
 // WorkloadStatus Workload Status

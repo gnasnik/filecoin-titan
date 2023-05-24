@@ -194,9 +194,9 @@ func (m *Manager) nodeKeepalive(node *Node, t time.Time, isSave bool) {
 		// Minute
 		node.OnlineDuration += int((saveInfoInterval * keepaliveTime) / time.Minute)
 
-		err := m.UpdateNodeOnlineTime(nodeID, node.OnlineDuration)
+		err := m.UpdateNodeInfos(nodeID, node.OnlineDuration, node.UploadTraffic, node.DownloadTraffic)
 		if err != nil {
-			log.Errorf("UpdateNodeOnlineTime err:%s,nodeID:%s", err.Error(), nodeID)
+			log.Errorf("UpdateNodeInfos err:%s,nodeID:%s", err.Error(), nodeID, node.UploadTraffic, node.DownloadTraffic)
 		}
 	}
 }

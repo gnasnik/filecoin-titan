@@ -668,6 +668,9 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) (*type
 
 // SubmitUserWorkloadReport submits report of workload for User Asset Download
 func (s *Scheduler) SubmitUserWorkloadReport(ctx context.Context, r io.Reader) error {
+	nodeID := handler.GetNodeID(ctx)
+	node := s.NodeManager.GetNode(nodeID)
+
 	cipherText, err := ioutil.ReadAll(r)
 	if err != nil {
 		return err
@@ -679,7 +682,7 @@ func (s *Scheduler) SubmitUserWorkloadReport(ctx context.Context, r io.Reader) e
 		return xerrors.Errorf("decrypt error: %w", err)
 	}
 
-	return s.WorkloadManager.HandleUserWorkload(data)
+	return s.WorkloadManager.HandleUserWorkload(data, node)
 }
 
 // SubmitNodeWorkloadReport submits report of workload for node Asset Download
@@ -707,7 +710,7 @@ func (s *Scheduler) SubmitNodeWorkloadReport(ctx context.Context, r io.Reader) e
 		return xerrors.Errorf("decrypt error: %w", err)
 	}
 
-	return s.WorkloadManager.HandleNodeWorkload(data, nodeID)
+	return s.WorkloadManager.HandleNodeWorkload(data, node)
 }
 
 // GetWorkloadRecords retrieves a list of workload results.

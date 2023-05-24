@@ -46,8 +46,8 @@ type NodeInfo struct {
 	MacLocation     string          `json:"mac_location" form:"macLocation" gorm:"column:mac_location;comment:;" db:"mac_location"`
 	OnlineDuration  int             `json:"online_duration" form:"onlineDuration" db:"online_duration"` // unit:Minute
 	Profit          float64         `json:"profit" db:"profit"`
-	DownloadTraffic float64         `json:"download_traffic" db:"download_traffic"`
-	UploadTraffic   float64         `json:"upload_traffic" db:"upload_traffic"`
+	DownloadTraffic int64           `json:"download_traffic" db:"download_traffic"` // B
+	UploadTraffic   int64           `json:"upload_traffic" db:"upload_traffic"`     // B
 	DownloadBlocks  int             `json:"download_blocks" form:"downloadCount" gorm:"column:download_blocks;comment:;" db:"download_blocks"`
 	PortMapping     string          `db:"port_mapping"`
 	LastSeen        time.Time       `db:"last_seen"`

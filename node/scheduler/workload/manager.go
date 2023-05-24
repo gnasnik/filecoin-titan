@@ -10,6 +10,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	"github.com/Filecoin-Titan/titan/node/scheduler/db"
 	"github.com/Filecoin-Titan/titan/node/scheduler/leadership"
+	"github.com/Filecoin-Titan/titan/node/scheduler/node"
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
 )
@@ -27,17 +28,19 @@ const (
 type Manager struct {
 	config        dtypes.GetSchedulerConfigFunc
 	leadershipMgr *leadership.Manager
+	nodeMgr       *node.Manager
 	*db.SQLDB
 
 	profit float64
 }
 
 // NewManager return new node manager instance
-func NewManager(sdb *db.SQLDB, configFunc dtypes.GetSchedulerConfigFunc, lmgr *leadership.Manager) *Manager {
+func NewManager(sdb *db.SQLDB, configFunc dtypes.GetSchedulerConfigFunc, lmgr *leadership.Manager, nmgr *node.Manager) *Manager {
 	manager := &Manager{
 		config:        configFunc,
 		leadershipMgr: lmgr,
 		SQLDB:         sdb,
+		nodeMgr:       nmgr,
 	}
 
 	go manager.startHandleWorkloadResult()
@@ -163,7 +166,7 @@ func (m *Manager) checkWorkload(record *types.WorkloadRecord) types.WorkloadStat
 }
 
 // HandleUserWorkload handle user workload
-func (m *Manager) HandleUserWorkload(data []byte) error {
+func (m *Manager) HandleUserWorkload(data []byte, node *node.Node) error {
 	reports := make([]*types.WorkloadReport, 0)
 	dec := gob.NewDecoder(bytes.NewBuffer(data))
 	err := dec.Decode(&reports)
@@ -171,18 +174,26 @@ func (m *Manager) HandleUserWorkload(data []byte) error {
 		return xerrors.Errorf("decode data to []*types.WorkloadReport error: %w", err)
 	}
 
+	size := int64(0)
 	// TODO merge workload report by token
 	for _, rp := range reports {
+		size += rp.Workload.DownloadSize
+
 		if err = m.handleWorkloadReport(rp.NodeID, rp, true); err != nil {
 			log.Errorf("handler user workload report error %s, token id %s", err.Error(), rp.TokenID)
 			continue
 		}
 	}
+
+	if node != nil {
+		node.DownloadTraffic += size
+	}
+
 	return nil
 }
 
 // HandleNodeWorkload handle node workload
-func (m *Manager) HandleNodeWorkload(data []byte, nodeID string) error {
+func (m *Manager) HandleNodeWorkload(data []byte, node *node.Node) error {
 	reports := make([]*types.WorkloadReport, 0)
 	dec := gob.NewDecoder(bytes.NewBuffer(data))
 	err := dec.Decode(&reports)
@@ -192,7 +203,9 @@ func (m *Manager) HandleNodeWorkload(data []byte, nodeID string) error {
 
 	// TODO merge workload report by token
 	for _, rp := range reports {
-		if err = m.handleWorkloadReport(nodeID, rp, false); err != nil {
+		node.UploadTraffic += rp.Workload.DownloadSize
+
+		if err = m.handleWorkloadReport(node.NodeID, rp, false); err != nil {
 			log.Errorf("handler node workload report error %s", err.Error())
 			continue
 		}

@@ -663,8 +663,8 @@ func (m *Manager) getDownloadSources(cid string, nodes []string) []*types.Candid
 	return sources
 }
 
-// chooseCandidateNodesForAssetReplica selects candidate nodes to pull asset replicas
-func (m *Manager) chooseCandidateNodesForAssetReplica(count int, filterNodes []string) (map[string]*node.Node, string) {
+// chooseCandidateNodes selects candidate nodes to pull asset replicas
+func (m *Manager) chooseCandidateNodes(count int, filterNodes []string) (map[string]*node.Node, string) {
 	str := fmt.Sprintf("need node:%d , filter node:%d , cur node:%d , randNum : ", count, len(filterNodes), m.nodeMgr.Candidates)
 
 	selectMap := make(map[string]*node.Node)
@@ -709,8 +709,8 @@ func (m *Manager) chooseCandidateNodesForAssetReplica(count int, filterNodes []s
 	return selectMap, str
 }
 
-// chooseEdgeNodesForAssetReplica selects edge nodes to pull asset replicas
-func (m *Manager) chooseEdgeNodesForAssetReplica(count int, bandwidthDown int64, filterNodes []string) (map[string]*node.Node, string) {
+// chooseEdgeNodes selects edge nodes to pull asset replicas
+func (m *Manager) chooseEdgeNodes(count int, bandwidthDown int64, filterNodes []string) (map[string]*node.Node, string) {
 	str := fmt.Sprintf("need node:%d , filter node:%d , cur node:%d , randNum : ", count, len(filterNodes), m.nodeMgr.Edges)
 	selectMap := make(map[string]*node.Node)
 	if count <= 0 {

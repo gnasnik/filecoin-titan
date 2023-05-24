@@ -210,11 +210,11 @@ func (n *SQLDB) SaveNodeInfo(info *types.NodeInfo) error {
 	return err
 }
 
-// UpdateNodeOnlineTime update node online time and last time
-func (n *SQLDB) UpdateNodeOnlineTime(nodeID string, onlineTime int) error {
-	query := fmt.Sprintf(`UPDATE %s SET last_seen=NOW(),online_duration=? WHERE node_id=?`, nodeInfoTable)
+// UpdateNodeInfos update node online time , last time , download traffic , upload traffic
+func (n *SQLDB) UpdateNodeInfos(nodeID string, onlineTime int, uploadTraffic, downloadTraffic int64) error {
+	query := fmt.Sprintf(`UPDATE %s SET last_seen=NOW(),online_duration=?,upload_traffic=?,download_traffic=? WHERE node_id=?`, nodeInfoTable)
 	// update
-	_, err := n.db.Exec(query, onlineTime, nodeID)
+	_, err := n.db.Exec(query, onlineTime, uploadTraffic, downloadTraffic, nodeID)
 	return err
 }
 
@@ -618,39 +618,4 @@ func (n *SQLDB) UpdateNodeProfitsByValidationResult(infos []*types.ValidationRes
 
 	// Commit
 	return tx.Commit()
-}
-
-// SaveNodeProfit Modify and return the node profit value
-func (n *SQLDB) SaveNodeProfit(nodeID string, cProfit float64) (oldProfit, newValue float64, err error) {
-	tx, err := n.db.Beginx()
-	if err != nil {
-		return
-	}
-
-	defer func() {
-		err = tx.Rollback()
-		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("Rollback err:%s", err.Error())
-		}
-	}()
-	// select node info
-	nQuery := fmt.Sprintf(`SELECT profit FROM %s WHERE node_id=? FOR UPDATE`, nodeInfoTable)
-	err = tx.Get(&oldProfit, nQuery, nodeID)
-	if err != nil {
-		return
-	}
-
-	newValue = oldProfit + float64(cProfit)
-
-	// update node profit
-	uQuery := fmt.Sprintf(`UPDATE %s SET profit=? WHERE node_id=?`, nodeInfoTable)
-	_, err = tx.Exec(uQuery, newValue, nodeID)
-	if err != nil {
-		return
-	}
-
-	// Commit
-	err = tx.Commit()
-
-	return
 }

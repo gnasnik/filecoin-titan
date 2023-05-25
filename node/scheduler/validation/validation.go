@@ -77,14 +77,6 @@ func (m *Manager) startValidate() error {
 		}
 	}
 
-	// randomByte, err := m.lotus.StateGetRandomnessFromBeacon()
-	// if err != nil {
-	// 	log.Errorf("StateGetRandomnessFromBeacon err:%s", err.Error())
-	// } else {
-	// 	log.Infoln(randomByte)
-	// 	log.Infof("to int %d", binary.LittleEndian.Uint64(randomByte))
-	// }
-
 	roundID := uuid.NewString()
 	m.curRoundID = roundID
 	m.seed = time.Now().UnixNano() // TODO from filecoin

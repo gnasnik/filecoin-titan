@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
-	"github.com/Filecoin-Titan/titan/lib/lotuscli"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	"github.com/Filecoin-Titan/titan/node/scheduler/assets"
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
@@ -47,7 +46,6 @@ type Manager struct {
 	nodeMgr  *node.Manager
 	assetMgr *assets.Manager
 	notify   *pubsub.PubSub
-	lotus    *lotuscli.Client
 
 	// Each validator provides n window(VWindow) for titan according to the bandwidth down, and each window corresponds to a group(ValidatableGroup).
 	// All nodes will randomly fall into a group(ValidatableGroup).
@@ -70,7 +68,7 @@ type Manager struct {
 }
 
 // NewManager return new node manager instance
-func NewManager(nodeMgr *node.Manager, assetMgr *assets.Manager, configFunc dtypes.GetSchedulerConfigFunc, p *pubsub.PubSub, lotus *lotuscli.Client) *Manager {
+func NewManager(nodeMgr *node.Manager, assetMgr *assets.Manager, configFunc dtypes.GetSchedulerConfigFunc, p *pubsub.PubSub) *Manager {
 	manager := &Manager{
 		nodeMgr:       nodeMgr,
 		assetMgr:      assetMgr,
@@ -79,7 +77,6 @@ func NewManager(nodeMgr *node.Manager, assetMgr *assets.Manager, configFunc dtyp
 		unpairedGroup: newValidatableGroup(),
 		updateCh:      make(chan struct{}, 1),
 		notify:        p,
-		lotus:         lotus,
 	}
 
 	return manager

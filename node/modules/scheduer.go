@@ -6,7 +6,6 @@ import (
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/lib/etcdcli"
-	"github.com/Filecoin-Titan/titan/lib/lotuscli"
 	"github.com/Filecoin-Titan/titan/node/config"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	"github.com/Filecoin-Titan/titan/node/modules/helpers"
@@ -80,8 +79,8 @@ func NewStorageManager(params StorageManagerParams) *assets.Manager {
 }
 
 // NewValidation creates a new validation manager instance
-func NewValidation(mctx helpers.MetricsCtx, lc fx.Lifecycle, nm *node.Manager, am *assets.Manager, configFunc dtypes.GetSchedulerConfigFunc, p *pubsub.PubSub, lotus *lotuscli.Client) *validation.Manager {
-	v := validation.NewManager(nm, am, configFunc, p, lotus)
+func NewValidation(mctx helpers.MetricsCtx, lc fx.Lifecycle, nm *node.Manager, am *assets.Manager, configFunc dtypes.GetSchedulerConfigFunc, p *pubsub.PubSub) *validation.Manager {
+	v := validation.NewManager(nm, am, configFunc, p)
 
 	ctx := helpers.LifecycleCtx(mctx, lc)
 	lc.Append(fx.Hook{

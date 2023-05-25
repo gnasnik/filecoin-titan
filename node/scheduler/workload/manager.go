@@ -178,10 +178,8 @@ func (m *Manager) HandleUserWorkload(data []byte, node *node.Node) error {
 	// TODO merge workload report by token
 	for _, rp := range reports {
 		if rp.Workload == nil {
-			log.Errorf("workload cannot empty %#v", *rp)
-			continue
+			return xerrors.Errorf("report workload cannot empty, tokenID:%s, clientID:%s, nodeID:%s", rp.TokenID, rp.ClientID, rp.NodeID)
 		}
-
 		size += rp.Workload.DownloadSize
 
 		// replace clientID with nodeID

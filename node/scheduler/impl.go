@@ -183,17 +183,12 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		nodeInfo.Type = nodeType
 		nodeInfo.SchedulerID = s.ServerID
 
-		port, err := s.NodeManager.LoadPortMapping(nodeID)
-		if err != nil && err != sql.ErrNoRows {
-			return xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
-		}
-
 		pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
 		if err != nil && err != sql.ErrNoRows {
 			return xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 		}
 
-		onlineDuration, err := s.NodeManager.LoadNodeOnlineDuration(nodeID)
+		oldInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
 		if err != nil && err != sql.ErrNoRows {
 			return xerrors.Errorf("load node online duration %s err : %s", nodeID, err.Error())
 		}
@@ -204,8 +199,10 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		}
 
 		// init node info
-		nodeInfo.OnlineDuration = onlineDuration
-		nodeInfo.PortMapping = port
+		nodeInfo.OnlineDuration = oldInfo.OnlineDuration
+		nodeInfo.UploadTraffic = oldInfo.UploadTraffic
+		nodeInfo.DownloadTraffic = oldInfo.DownloadTraffic
+		nodeInfo.PortMapping = oldInfo.PortMapping
 		nodeInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
 		if err != nil {
 			return xerrors.Errorf("SplitHostPort err:%s", err.Error())

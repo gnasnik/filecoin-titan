@@ -13,17 +13,6 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// LoadPortMapping load the mapping port of a node.
-func (n *SQLDB) LoadPortMapping(nodeID string) (string, error) {
-	var port string
-	query := fmt.Sprintf("SELECT port_mapping FROM %s WHERE node_id=?", nodeInfoTable)
-	if err := n.db.Get(&port, query, nodeID); err != nil {
-		return "", err
-	}
-
-	return port, nil
-}
-
 // UpdatePortMapping sets the node's mapping port.
 func (n *SQLDB) UpdatePortMapping(nodeID, port string) error {
 	info := types.NodeInfo{
@@ -263,18 +252,6 @@ func (n *SQLDB) LoadNodeType(nodeID string) (types.NodeType, error) {
 	}
 
 	return nodeType, nil
-}
-
-// LoadNodeOnlineDuration load online duration of node.
-func (n *SQLDB) LoadNodeOnlineDuration(nodeID string) (int, error) {
-	var t int
-
-	query := fmt.Sprintf(`SELECT online_duration FROM %s WHERE node_id=?`, nodeInfoTable)
-	if err := n.db.Get(&t, query, nodeID); err != nil {
-		return t, err
-	}
-
-	return t, nil
 }
 
 // NodeExists is node exists

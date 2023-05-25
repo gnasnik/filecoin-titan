@@ -77,8 +77,10 @@ type Scheduler interface {
 	// GetValidationResults retrieves a list of validation results with pagination using the specified time range, page number, and page size
 	GetValidationResults(ctx context.Context, startTime, endTime time.Time, pageNumber, pageSize int) (*types.ListValidationResultRsp, error) //perm:web,admin
 	// SubmitUserWorkloadReport submits report of workload for User Download asset
+	// r is buffer of []*types.WorkloadReport encode by gob
 	SubmitUserWorkloadReport(ctx context.Context, r io.Reader) error //perm:default
 	// SubmitNodeWorkloadReport submits report of workload for node provide Asset Download
+	// r is buffer of types.NodeWorkloadReport encode by gob
 	SubmitNodeWorkloadReport(ctx context.Context, r io.Reader) error //perm:edge,candidate
 	// GetAssetEvents retrieves a list of asset events with pagination using the specified limit, offset, and time
 	GetAssetEvents(ctx context.Context, startTime, endTime time.Time, limit, offset int) (*types.ListAssetEventRsp, error) //perm:web,admin
@@ -103,15 +105,15 @@ type Scheduler interface {
 
 	// User-related methods
 	// AllocateStorage allocates storage space.
-	AllocateStorage(ctx context.Context, userID string) error //perm:admin
+	AllocateStorage(ctx context.Context, userID string) error //perm:web
 	// CreateAPIKey creates a key for the client API.
-	CreateAPIKey(ctx context.Context, userID, keyName string) (string, error) //perm:admin
+	CreateAPIKey(ctx context.Context, userID, keyName string) (string, error) //perm:web
 	// CreateAsset creates an asset with car CID, car name, and car size.
-	CreateAsset(ctx context.Context, req *types.CreateAssetReq) (*types.CreateAssetRsp, error) //perm:admin
+	CreateAsset(ctx context.Context, req *types.CreateAssetReq) (*types.CreateAssetRsp, error) //perm:web
 	// ListAssets lists the assets of the user.
-	ListAssets(ctx context.Context, userID string) ([]*types.AssetProperty, error) //perm:admin
+	ListAssets(ctx context.Context, userID string) ([]*types.AssetProperty, error) //perm:web
 	// DeleteAssets deletes the assets of the user.
-	DeleteAssets(ctx context.Context, userID string, assetCIDs []string) error //perm:admin
+	DeleteAssets(ctx context.Context, userID string, assetCIDs []string) error //perm:web
 	// ShareAssets shares the assets of the user.
-	ShareAssets(ctx context.Context, userID string, assetCID []string) ([]string, error) //perm:admin
+	ShareAssets(ctx context.Context, userID string, assetCID []string) ([]string, error) //perm:web
 }

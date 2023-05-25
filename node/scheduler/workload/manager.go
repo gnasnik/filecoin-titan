@@ -177,8 +177,6 @@ func (m *Manager) HandleUserWorkload(data []byte, node *node.Node) error {
 	size := int64(0)
 	// TODO merge workload report by token
 	for _, rp := range reports {
-		size += rp.Workload.DownloadSize
-
 		// replace clientID with nodeID
 		if node != nil {
 			rp.ClientID = node.NodeID
@@ -187,6 +185,8 @@ func (m *Manager) HandleUserWorkload(data []byte, node *node.Node) error {
 			log.Errorf("handler user workload report error %s, token id %s", err.Error(), rp.TokenID)
 			continue
 		}
+
+		size += rp.Workload.DownloadSize
 	}
 
 	if node != nil {
@@ -207,12 +207,12 @@ func (m *Manager) HandleNodeWorkload(data []byte, node *node.Node) error {
 
 	// TODO merge workload report by token
 	for _, rp := range reports {
-		node.UploadTraffic += rp.Workload.DownloadSize
-
 		if err = m.handleWorkloadReport(node.NodeID, rp, false); err != nil {
 			log.Errorf("handler node workload report error %s", err.Error())
 			continue
 		}
+
+		node.UploadTraffic += rp.Workload.DownloadSize
 	}
 
 	return nil

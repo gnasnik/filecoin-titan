@@ -669,6 +669,8 @@ func (s *Scheduler) SubmitUserWorkloadReport(ctx context.Context, r io.Reader) e
 	nodeID := handler.GetNodeID(ctx)
 	node := s.NodeManager.GetNode(nodeID)
 
+	log.Warnf("SubmitUserWorkloadReport node:%s", nodeID)
+
 	cipherText, err := ioutil.ReadAll(r)
 	if err != nil {
 		return err
@@ -690,6 +692,8 @@ func (s *Scheduler) SubmitNodeWorkloadReport(ctx context.Context, r io.Reader) e
 	if node == nil {
 		return xerrors.Errorf("node %s not exists", nodeID)
 	}
+
+	log.Warnf("SubmitNodeWorkloadReport node:%s", nodeID)
 
 	report := &types.NodeWorkloadReport{}
 	dec := gob.NewDecoder(r)

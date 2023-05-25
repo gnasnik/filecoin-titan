@@ -169,7 +169,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 	if !alreadyConnect {
 		// init node info
-		nodeInfo, err := cNode.API.GetNodeInfo(ctx)
+		nodeInfo, err := cNode.API.GetNodeInfo(context.Background())
 		if err != nil {
 			log.Errorf("nodeConnect NodeInfo err:%s", err.Error())
 			return err

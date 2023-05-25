@@ -17,6 +17,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/cidutil"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	"github.com/Filecoin-Titan/titan/node/scheduler/nat"
+	"github.com/Filecoin-Titan/titan/node/scheduler/user"
 	"github.com/Filecoin-Titan/titan/node/scheduler/validation"
 	"github.com/Filecoin-Titan/titan/node/scheduler/workload"
 	"github.com/google/uuid"
@@ -721,4 +722,40 @@ func (s *Scheduler) GetWorkloadRecords(ctx context.Context, startTime, endTime t
 // GetWorkloadRecord retrieves workload result.
 func (s *Scheduler) GetWorkloadRecord(ctx context.Context, tokenID string) (*types.WorkloadRecord, error) {
 	return s.NodeManager.LoadWorkloadRecord(tokenID)
+}
+
+// AllocateStorage allocates storage space.
+func (s *Scheduler) AllocateStorage(ctx context.Context, userID string) error {
+	u := &user.User{ID: userID}
+	return u.AllocateStorage(ctx, s.SchedulerCfg.UserFreeStorageSize)
+}
+
+// CreateAPIKey creates a key for the client API.
+func (s *Scheduler) CreateAPIKey(ctx context.Context, userID, keyName string) (string, error) {
+	u := &user.User{ID: userID}
+	return u.CreateAPIKey(ctx, keyName)
+}
+
+// CreateAsset creates an asset with car CID, car name, and car size.
+func (s *Scheduler) CreateAsset(ctx context.Context, req *types.CreateAssetReq) (*types.CreateAssetRsp, error) {
+	u := &user.User{ID: req.UserID}
+	return u.CreateAsset(ctx, req.AssetID, req.AssetName, req.AssetSize)
+}
+
+// ListAssets lists the assets of the user.
+func (s *Scheduler) ListAssets(ctx context.Context, userID string) ([]*types.AssetProperty, error) {
+	u := &user.User{ID: userID}
+	return u.ListAssets(ctx)
+}
+
+// DeleteAssets deletes the assets of the user.
+func (s *Scheduler) DeleteAssets(ctx context.Context, userID string, assetCIDs []string) error {
+	u := &user.User{ID: userID}
+	return u.DeleteAssets(ctx, assetCIDs)
+}
+
+// ShareAssets shares the assets of the user.
+func (s *Scheduler) ShareAssets(ctx context.Context, userID string, assetCIDs []string) ([]string, error) {
+	u := &user.User{ID: userID}
+	return u.ShareAssets(ctx, assetCIDs)
 }

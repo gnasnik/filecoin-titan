@@ -121,4 +121,6 @@ type SchedulerCfg struct {
 	// The key of the map is the name of the level, and the value of the map is an int,
 	// indicating how many select weight this level can get (the more select weight, the greater the probability of the node being selected)
 	LevelSelectWeight map[string]int
+
+	UserFreeStorageSize int64
 }

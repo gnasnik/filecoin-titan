@@ -179,6 +179,10 @@ func (m *Manager) HandleUserWorkload(data []byte, node *node.Node) error {
 	for _, rp := range reports {
 		size += rp.Workload.DownloadSize
 
+		// replace clientID with nodeID
+		if node != nil {
+			rp.ClientID = node.NodeID
+		}
 		if err = m.handleWorkloadReport(rp.NodeID, rp, true); err != nil {
 			log.Errorf("handler user workload report error %s, token id %s", err.Error(), rp.TokenID)
 			continue

@@ -100,4 +100,18 @@ type Scheduler interface {
 	DeleteEdgeUpdateConfig(ctx context.Context, nodeType int) error //perm:admin
 	// GetValidationInfo get information related to validation and election
 	GetValidationInfo(ctx context.Context) (*types.ValidationInfo, error) //perm:web,admin
+
+	// User-related methods
+	// AllocateStorage allocates storage space.
+	AllocateStorage(ctx context.Context, userID string) error
+	// CreateAPIKey creates a key for the client API.
+	CreateAPIKey(ctx context.Context, userID, keyName string) (string, error)
+	// CreateAsset creates an asset with car CID, car name, and car size.
+	CreateAsset(ctx context.Context, req *types.CreateAssetReq) (*types.CreateAssetRsp, error)
+	// ListAssets lists the assets of the user.
+	ListAssets(ctx context.Context, userID string) ([]*types.AssetProperty, error)
+	// DeleteAssets deletes the assets of the user.
+	DeleteAssets(ctx context.Context, userID string, assetCIDs []string) error
+	// ShareAssets shares the assets of the user.
+	ShareAssets(ctx context.Context, userID string, assetCID []string) ([]string, error)
 }

@@ -169,7 +169,15 @@ type SchedulerStruct struct {
 	CommonStruct
 
 	Internal struct {
+		AllocateStorage func(p0 context.Context, p1 string) error ``
+
 		CandidateConnect func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"candidate"`
+
+		CreateAPIKey func(p0 context.Context, p1 string, p2 string) (string, error) ``
+
+		CreateAsset func(p0 context.Context, p1 *types.CreateAssetReq) (*types.CreateAssetRsp, error) ``
+
+		DeleteAssets func(p0 context.Context, p1 string, p2 []string) error ``
 
 		DeleteEdgeUpdateConfig func(p0 context.Context, p1 int) error `perm:"admin"`
 
@@ -211,6 +219,8 @@ type SchedulerStruct struct {
 
 		GetWorkloadRecords func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListWorkloadRecordRsp, error) `perm:"web,admin"`
 
+		ListAssets func(p0 context.Context, p1 string) ([]*types.AssetProperty, error) ``
+
 		NatPunch func(p0 context.Context, p1 *types.NatPunchReq) error `perm:"default"`
 
 		NodeExists func(p0 context.Context, p1 string) error `perm:"web"`
@@ -234,6 +244,8 @@ type SchedulerStruct struct {
 		RemoveAssetReplica func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
 		SetEdgeUpdateConfig func(p0 context.Context, p1 *EdgeUpdateConfig) error `perm:"admin"`
+
+		ShareAssets func(p0 context.Context, p1 string, p2 []string) ([]string, error) ``
 
 		SubmitNodeWorkloadReport func(p0 context.Context, p1 io.Reader) error `perm:"edge,candidate"`
 
@@ -583,6 +595,17 @@ func (s *LocatorStub) GetUserAccessPoint(p0 context.Context, p1 string) (*Access
 	return nil, ErrNotSupported
 }
 
+func (s *SchedulerStruct) AllocateStorage(p0 context.Context, p1 string) error {
+	if s.Internal.AllocateStorage == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.AllocateStorage(p0, p1)
+}
+
+func (s *SchedulerStub) AllocateStorage(p0 context.Context, p1 string) error {
+	return ErrNotSupported
+}
+
 func (s *SchedulerStruct) CandidateConnect(p0 context.Context, p1 *types.ConnectOptions) error {
 	if s.Internal.CandidateConnect == nil {
 		return ErrNotSupported
@@ -591,6 +614,39 @@ func (s *SchedulerStruct) CandidateConnect(p0 context.Context, p1 *types.Connect
 }
 
 func (s *SchedulerStub) CandidateConnect(p0 context.Context, p1 *types.ConnectOptions) error {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) CreateAPIKey(p0 context.Context, p1 string, p2 string) (string, error) {
+	if s.Internal.CreateAPIKey == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.CreateAPIKey(p0, p1, p2)
+}
+
+func (s *SchedulerStub) CreateAPIKey(p0 context.Context, p1 string, p2 string) (string, error) {
+	return "", ErrNotSupported
+}
+
+func (s *SchedulerStruct) CreateAsset(p0 context.Context, p1 *types.CreateAssetReq) (*types.CreateAssetRsp, error) {
+	if s.Internal.CreateAsset == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.CreateAsset(p0, p1)
+}
+
+func (s *SchedulerStub) CreateAsset(p0 context.Context, p1 *types.CreateAssetReq) (*types.CreateAssetRsp, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) DeleteAssets(p0 context.Context, p1 string, p2 []string) error {
+	if s.Internal.DeleteAssets == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.DeleteAssets(p0, p1, p2)
+}
+
+func (s *SchedulerStub) DeleteAssets(p0 context.Context, p1 string, p2 []string) error {
 	return ErrNotSupported
 }
 
@@ -814,6 +870,17 @@ func (s *SchedulerStub) GetWorkloadRecords(p0 context.Context, p1 time.Time, p2 
 	return nil, ErrNotSupported
 }
 
+func (s *SchedulerStruct) ListAssets(p0 context.Context, p1 string) ([]*types.AssetProperty, error) {
+	if s.Internal.ListAssets == nil {
+		return *new([]*types.AssetProperty), ErrNotSupported
+	}
+	return s.Internal.ListAssets(p0, p1)
+}
+
+func (s *SchedulerStub) ListAssets(p0 context.Context, p1 string) ([]*types.AssetProperty, error) {
+	return *new([]*types.AssetProperty), ErrNotSupported
+}
+
 func (s *SchedulerStruct) NatPunch(p0 context.Context, p1 *types.NatPunchReq) error {
 	if s.Internal.NatPunch == nil {
 		return ErrNotSupported
@@ -944,6 +1011,17 @@ func (s *SchedulerStruct) SetEdgeUpdateConfig(p0 context.Context, p1 *EdgeUpdate
 
 func (s *SchedulerStub) SetEdgeUpdateConfig(p0 context.Context, p1 *EdgeUpdateConfig) error {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) ShareAssets(p0 context.Context, p1 string, p2 []string) ([]string, error) {
+	if s.Internal.ShareAssets == nil {
+		return *new([]string), ErrNotSupported
+	}
+	return s.Internal.ShareAssets(p0, p1, p2)
+}
+
+func (s *SchedulerStub) ShareAssets(p0 context.Context, p1 string, p2 []string) ([]string, error) {
+	return *new([]string), ErrNotSupported
 }
 
 func (s *SchedulerStruct) SubmitNodeWorkloadReport(p0 context.Context, p1 io.Reader) error {

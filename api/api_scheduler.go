@@ -103,15 +103,15 @@ type Scheduler interface {
 
 	// User-related methods
 	// AllocateStorage allocates storage space.
-	AllocateStorage(ctx context.Context, userID string) error
+	AllocateStorage(ctx context.Context, userID string) error //perm:admin
 	// CreateAPIKey creates a key for the client API.
-	CreateAPIKey(ctx context.Context, userID, keyName string) (string, error)
+	CreateAPIKey(ctx context.Context, userID, keyName string) (string, error) //perm:admin
 	// CreateAsset creates an asset with car CID, car name, and car size.
-	CreateAsset(ctx context.Context, req *types.CreateAssetReq) (*types.CreateAssetRsp, error)
+	CreateAsset(ctx context.Context, req *types.CreateAssetReq) (*types.CreateAssetRsp, error) //perm:admin
 	// ListAssets lists the assets of the user.
-	ListAssets(ctx context.Context, userID string) ([]*types.AssetProperty, error)
+	ListAssets(ctx context.Context, userID string) ([]*types.AssetProperty, error) //perm:admin
 	// DeleteAssets deletes the assets of the user.
-	DeleteAssets(ctx context.Context, userID string, assetCIDs []string) error
+	DeleteAssets(ctx context.Context, userID string, assetCIDs []string) error //perm:admin
 	// ShareAssets shares the assets of the user.
-	ShareAssets(ctx context.Context, userID string, assetCID []string) ([]string, error)
+	ShareAssets(ctx context.Context, userID string, assetCID []string) ([]string, error) //perm:admin
 }

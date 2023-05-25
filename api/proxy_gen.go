@@ -12,7 +12,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/google/uuid"
-	"golang.org/x/xerrors"
+	xerrors "golang.org/x/xerrors"
 )
 
 var ErrNotSupported = xerrors.New("method not supported")
@@ -169,15 +169,15 @@ type SchedulerStruct struct {
 	CommonStruct
 
 	Internal struct {
-		AllocateStorage func(p0 context.Context, p1 string) error ``
+		AllocateStorage func(p0 context.Context, p1 string) error `perm:"admin"`
 
 		CandidateConnect func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"candidate"`
 
-		CreateAPIKey func(p0 context.Context, p1 string, p2 string) (string, error) ``
+		CreateAPIKey func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"admin"`
 
-		CreateAsset func(p0 context.Context, p1 *types.CreateAssetReq) (*types.CreateAssetRsp, error) ``
+		CreateAsset func(p0 context.Context, p1 *types.CreateAssetReq) (*types.CreateAssetRsp, error) `perm:"admin"`
 
-		DeleteAssets func(p0 context.Context, p1 string, p2 []string) error ``
+		DeleteAssets func(p0 context.Context, p1 string, p2 []string) error `perm:"admin"`
 
 		DeleteEdgeUpdateConfig func(p0 context.Context, p1 int) error `perm:"admin"`
 
@@ -219,7 +219,7 @@ type SchedulerStruct struct {
 
 		GetWorkloadRecords func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListWorkloadRecordRsp, error) `perm:"web,admin"`
 
-		ListAssets func(p0 context.Context, p1 string) ([]*types.AssetProperty, error) ``
+		ListAssets func(p0 context.Context, p1 string) ([]*types.AssetProperty, error) `perm:"admin"`
 
 		NatPunch func(p0 context.Context, p1 *types.NatPunchReq) error `perm:"default"`
 
@@ -245,7 +245,7 @@ type SchedulerStruct struct {
 
 		SetEdgeUpdateConfig func(p0 context.Context, p1 *EdgeUpdateConfig) error `perm:"admin"`
 
-		ShareAssets func(p0 context.Context, p1 string, p2 []string) ([]string, error) ``
+		ShareAssets func(p0 context.Context, p1 string, p2 []string) ([]string, error) `perm:"admin"`
 
 		SubmitNodeWorkloadReport func(p0 context.Context, p1 io.Reader) error `perm:"edge,candidate"`
 

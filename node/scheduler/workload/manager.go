@@ -156,7 +156,7 @@ func (m *Manager) checkWorkload(record *types.WorkloadRecord) types.WorkloadStat
 		}
 	}
 
-	if nWorkload.DownloadSize != cWorkload.DownloadSize {
+	if nWorkload.DownloadSize == 0 || nWorkload.DownloadSize != cWorkload.DownloadSize {
 		return types.WorkloadStatusFailed
 	}
 

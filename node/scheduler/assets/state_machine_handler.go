@@ -4,7 +4,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/alecthomas/units"
 	"github.com/filecoin-project/go-statemachine"
 	"golang.org/x/xerrors"
@@ -270,7 +269,7 @@ func (m *Manager) handleRemove(ctx statemachine.Context, info AssetPullingInfo) 
 		return xerrors.Errorf("RemoveAsset %s LoadAssetReplicas err:%s", info.CID, err.Error())
 	}
 
-	err = m.DeleteAssetRecord(hash, m.nodeMgr.ServerID, &types.AssetEventInfo{Hash: hash, Event: types.AssetEventRemove, Requester: info.Requester}, Remove.String())
+	err = m.DeleteAssetRecord(hash, m.nodeMgr.ServerID, Remove.String())
 	if err != nil {
 		return xerrors.Errorf("RemoveAsset %s DeleteAssetRecord err: %s", hash, err.Error())
 	}

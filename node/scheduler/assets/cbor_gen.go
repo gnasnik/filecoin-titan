@@ -26,7 +26,7 @@ func (t *AssetPullingInfo) MarshalCBOR(w io.Writer) error {
 
 	cw := cbg.NewCborWriter(w)
 
-	if _, err := cw.Write([]byte{175}); err != nil {
+	if _, err := cw.Write([]byte{176}); err != nil {
 		return err
 	}
 
@@ -143,6 +143,51 @@ func (t *AssetPullingInfo) MarshalCBOR(w io.Writer) error {
 		}
 	}
 
+	// t.Details (string) (string)
+	if len("Details") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"Details\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("Details"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("Details")); err != nil {
+		return err
+	}
+
+	if len(t.Details) > cbg.MaxLength {
+		return xerrors.Errorf("Value in field t.Details was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Details))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string(t.Details)); err != nil {
+		return err
+	}
+
+	// t.Bandwidth (int64) (int64)
+	if len("Bandwidth") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"Bandwidth\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("Bandwidth"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("Bandwidth")); err != nil {
+		return err
+	}
+
+	if t.Bandwidth >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.Bandwidth)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.Bandwidth-1)); err != nil {
+			return err
+		}
+	}
+
 	// t.Requester (string) (string)
 	if len("Requester") > cbg.MaxLength {
 		return xerrors.Errorf("Value in field \"Requester\" was too long")
@@ -228,28 +273,6 @@ func (t *AssetPullingInfo) MarshalCBOR(w io.Writer) error {
 		}
 	} else {
 		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.EdgeWaitings-1)); err != nil {
-			return err
-		}
-	}
-
-	// t.BandwidthDown (int64) (int64)
-	if len("BandwidthDown") > cbg.MaxLength {
-		return xerrors.Errorf("Value in field \"BandwidthDown\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("BandwidthDown"))); err != nil {
-		return err
-	}
-	if _, err := io.WriteString(w, string("BandwidthDown")); err != nil {
-		return err
-	}
-
-	if t.Bandwidth >= 0 {
-		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.Bandwidth)); err != nil {
-			return err
-		}
-	} else {
-		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.Bandwidth-1)); err != nil {
 			return err
 		}
 	}
@@ -509,6 +532,43 @@ func (t *AssetPullingInfo) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.Blocks = int64(extraI)
 			}
+			// t.Details (string) (string)
+		case "Details":
+
+			{
+				sval, err := cbg.ReadString(cr)
+				if err != nil {
+					return err
+				}
+
+				t.Details = string(sval)
+			}
+			// t.Bandwidth (int64) (int64)
+		case "Bandwidth":
+			{
+				maj, extra, err := cr.ReadHeader()
+				var extraI int64
+				if err != nil {
+					return err
+				}
+				switch maj {
+				case cbg.MajUnsignedInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 positive overflow")
+					}
+				case cbg.MajNegativeInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 negative overflow")
+					}
+					extraI = -1 - extraI
+				default:
+					return fmt.Errorf("wrong type for int64 field: %d", maj)
+				}
+
+				t.Bandwidth = int64(extraI)
+			}
 			// t.Requester (string) (string)
 		case "Requester":
 
@@ -597,32 +657,6 @@ func (t *AssetPullingInfo) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.EdgeWaitings = int64(extraI)
-			}
-			// t.BandwidthDown (int64) (int64)
-		case "BandwidthDown":
-			{
-				maj, extra, err := cr.ReadHeader()
-				var extraI int64
-				if err != nil {
-					return err
-				}
-				switch maj {
-				case cbg.MajUnsignedInt:
-					extraI = int64(extra)
-					if extraI < 0 {
-						return fmt.Errorf("int64 positive overflow")
-					}
-				case cbg.MajNegativeInt:
-					extraI = int64(extra)
-					if extraI < 0 {
-						return fmt.Errorf("int64 negative overflow")
-					}
-					extraI = -1 - extraI
-				default:
-					return fmt.Errorf("wrong type for int64 field: %d", maj)
-				}
-
-				t.Bandwidth = int64(extraI)
 			}
 			// t.CandidateReplicas (int64) (int64)
 		case "CandidateReplicas":

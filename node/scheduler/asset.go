@@ -100,16 +100,7 @@ func (s *Scheduler) RemoveAssetRecord(ctx context.Context, cid string) error {
 
 // RemoveAssetReplica removes an asset replica from the system by its CID and nodeID.
 func (s *Scheduler) RemoveAssetReplica(ctx context.Context, cid, nodeID string) error {
-	if cid == "" {
-		return xerrors.Errorf("Cid Is Nil")
-	}
-
-	hash, err := cidutil.CIDToHash(cid)
-	if err != nil {
-		return err
-	}
-
-	return s.AssetManager.RemoveReplica(cid, hash, nodeID, "") // TODO UserID
+	return xerrors.New("The current interface is not yet implemented")
 }
 
 // PullAsset pull an asset based on the provided PullAssetReq structure.

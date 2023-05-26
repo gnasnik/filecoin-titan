@@ -156,24 +156,14 @@ type AssetStatistics struct {
 	UserDownloadCount int
 }
 
-// AssetEvent Events for asset manipulation
-type AssetEvent string
-
-const (
-	// AssetEventAdd status
-	AssetEventAdd AssetEvent = "Add"
-	// AssetEventRemove status
-	AssetEventRemove AssetEvent = "Remove"
-)
-
 // AssetEventInfo Event info for asset manipulation
 type AssetEventInfo struct {
 	ID          int
-	Hash        string     `db:"hash"`
-	Event       AssetEvent `db:"event"`
-	CreatedTime time.Time  `db:"created_time"`
-	Requester   string     `db:"requester"`
-	Details     string     `db:"details"`
+	Hash        string    `db:"hash"`
+	Event       string    `db:"event"`
+	CreatedTime time.Time `db:"created_time"`
+	Requester   string    `db:"requester"`
+	Details     string    `db:"details"`
 }
 
 // ListAssetEventRsp list asset events

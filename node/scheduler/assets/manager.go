@@ -233,9 +233,7 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq, userID string) e
 			NeedBandwidth:         info.Bandwidth,
 		}
 
-		event := &types.AssetEventInfo{Hash: info.Hash, Event: types.AssetEventAdd, Requester: userID}
-
-		err = m.SaveAssetRecord(record, event)
+		err = m.SaveAssetRecord(record)
 		if err != nil {
 			return xerrors.Errorf("SaveRecordOfAsset err:%s", err.Error())
 		}
@@ -289,9 +287,7 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, repleni
 		NeedBandwidth:         assetRecord.NeedBandwidth,
 	}
 
-	event := &types.AssetEventInfo{Hash: assetRecord.Hash, Event: types.AssetEventAdd, Requester: userID, Details: details}
-
-	err := m.SaveAssetRecord(record, event)
+	err := m.SaveAssetRecord(record)
 	if err != nil {
 		return xerrors.Errorf("SaveRecordOfAsset err:%s", err.Error())
 	}
@@ -299,6 +295,7 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, repleni
 	rInfo := AssetForceState{
 		State:     state,
 		Requester: userID,
+		Details:   details,
 	}
 
 	return m.assetStateMachines.Send(AssetHash(assetRecord.Hash), rInfo)
@@ -320,24 +317,6 @@ func (m *Manager) RestartPullAssets(hashes []types.AssetHash) error {
 			log.Errorf("RestartPullAssets send err:%s", err.Error())
 		}
 	}
-
-	return nil
-}
-
-// RemoveReplica remove a replica for node
-func (m *Manager) RemoveReplica(cid, hash, nodeID, userID string) error {
-	err := m.DeleteAssetReplica(hash, nodeID, &types.AssetEventInfo{Hash: hash, Event: types.AssetEventRemove, Requester: userID, Details: nodeID})
-	if err != nil {
-		return xerrors.Errorf("RemoveReplica %s DeleteAssetReplica err: %s", hash, err.Error())
-	}
-
-	// asset view
-	err = m.removeAssetFromView(nodeID, cid)
-	if err != nil {
-		return xerrors.Errorf("RemoveReplica %s removeAssetFromView err: %s", hash, err.Error())
-	}
-
-	go m.requestAssetDelete(nodeID, cid)
 
 	return nil
 }

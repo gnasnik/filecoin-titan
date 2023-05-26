@@ -54,7 +54,7 @@ func (n *SQLDB) BatchInitReplicas(infos []*types.ReplicaInfo) error {
 }
 
 // UpdateStateOfAsset update asset state information
-func (n *SQLDB) UpdateStateOfAsset(hash, state string, totalBlock, totalSize, retryCount, replenishReplicas int64, serverID dtypes.ServerID) error {
+func (n *SQLDB) UpdateStateOfAsset(hash, state string, totalBlock, totalSize, retryCount, replenishReplicas int64, serverID dtypes.ServerID, eInfo *types.AssetEventInfo) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -78,6 +78,15 @@ func (n *SQLDB) UpdateStateOfAsset(hash, state string, totalBlock, totalSize, re
 	// update record table
 	dQuery := fmt.Sprintf(`UPDATE %s SET total_size=?, total_blocks=?, end_time=NOW() WHERE hash=?`, assetRecordTable)
 	_, err = tx.Exec(dQuery, totalSize, totalBlock, hash)
+	if err != nil {
+		return err
+	}
+
+	// asset event
+	eQuery := fmt.Sprintf(`INSERT INTO %s (hash, event, requester, details)
+		VALUES (?, ?, ?, ?)`, assetEventTable)
+
+	_, err = tx.Exec(eQuery, eInfo.Hash, eInfo.Event, eInfo.Requester, eInfo.Details)
 	if err != nil {
 		return err
 	}
@@ -173,7 +182,7 @@ func (n *SQLDB) LoadUnfinishedPullAssetNodes(hash string) ([]string, error) {
 }
 
 // DeleteAssetRecord removes all records associated with a given asset hash from the database.
-func (n *SQLDB) DeleteAssetRecord(hash string, serverID dtypes.ServerID, info *types.AssetEventInfo, state string) error {
+func (n *SQLDB) DeleteAssetRecord(hash string, serverID dtypes.ServerID, state string) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -195,47 +204,6 @@ func (n *SQLDB) DeleteAssetRecord(hash string, serverID dtypes.ServerID, info *t
 	// replica info
 	cQuery := fmt.Sprintf(`DELETE FROM %s WHERE hash=? `, replicaInfoTable)
 	_, err = tx.Exec(cQuery, hash)
-	if err != nil {
-		return err
-	}
-
-	// asset event
-	query := fmt.Sprintf(`INSERT INTO %s (hash, event, requester, details)
-	VALUES (?, ?, ?, ?)`, assetEventTable)
-
-	_, err = tx.Exec(query, info.Hash, info.Event, info.Requester, info.Details)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
-// DeleteAssetReplica remove a replica associated with a given asset hash from the database.
-func (n *SQLDB) DeleteAssetReplica(hash, nodeID string, info *types.AssetEventInfo) error {
-	tx, err := n.db.Beginx()
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		err = tx.Rollback()
-		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("DeleteAssetReplica Rollback err:%s", err.Error())
-		}
-	}()
-
-	query := fmt.Sprintf(`DELETE FROM %s WHERE hash=? AND node_id=?`, replicaInfoTable)
-	_, err = tx.Exec(query, hash, nodeID)
-	if err != nil {
-		return err
-	}
-
-	// asset event
-	eQuery := fmt.Sprintf(`INSERT INTO %s (hash, event, requester, details)
-		VALUES (?, ?, ?, ?)`, assetEventTable)
-
-	_, err = tx.Exec(eQuery, info.Hash, info.Event, info.Requester, info.Details)
 	if err != nil {
 		return err
 	}
@@ -291,7 +259,7 @@ func (n *SQLDB) LoadAssetState(hash string, serverID dtypes.ServerID) (*types.As
 }
 
 // SaveAssetRecord  saves an asset record into the database.
-func (n *SQLDB) SaveAssetRecord(rInfo *types.AssetRecord, eInfo *types.AssetEventInfo) error {
+func (n *SQLDB) SaveAssetRecord(rInfo *types.AssetRecord) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -320,15 +288,6 @@ func (n *SQLDB) SaveAssetRecord(rInfo *types.AssetRecord, eInfo *types.AssetEven
 		        VALUES (?, ?, ?) 
 				ON DUPLICATE KEY UPDATE state=?, replenish_replicas=?`, assetStateTable(rInfo.ServerID))
 	_, err = tx.Exec(query, rInfo.Hash, rInfo.State, rInfo.ReplenishReplicas, rInfo.State, rInfo.ReplenishReplicas)
-	if err != nil {
-		return err
-	}
-
-	// asset event
-	eQuery := fmt.Sprintf(`INSERT INTO %s (hash, event, requester, details)
-		VALUES (?, ?, ?, ?)`, assetEventTable)
-
-	_, err = tx.Exec(eQuery, eInfo.Hash, eInfo.Event, eInfo.Requester, eInfo.Details)
 	if err != nil {
 		return err
 	}

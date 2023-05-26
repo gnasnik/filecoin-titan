@@ -130,7 +130,14 @@ func (d *Datastore) Put(ctx context.Context, key datastore.Key, value []byte) er
 
 	aInfo.Hash = AssetHash(trimPrefix(key))
 
-	return d.assetDB.UpdateStateOfAsset(aInfo.Hash.String(), aInfo.State.String(), aInfo.Blocks, aInfo.Size, aInfo.RetryCount, aInfo.ReplenishReplicas, d.ServerID)
+	event := &types.AssetEventInfo{
+		Hash:      aInfo.Hash.String(),
+		Requester: aInfo.Requester,
+		Details:   aInfo.Details,
+		Event:     aInfo.State.String(),
+	}
+
+	return d.assetDB.UpdateStateOfAsset(aInfo.Hash.String(), aInfo.State.String(), aInfo.Blocks, aInfo.Size, aInfo.RetryCount, aInfo.ReplenishReplicas, d.ServerID, event)
 }
 
 // Delete delete asset record info (This func has no place to call it)

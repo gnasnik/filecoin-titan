@@ -40,6 +40,7 @@ type AssetPullingInfo struct {
 	ReplenishReplicas int64
 
 	Requester string
+	Details   string
 }
 
 // ToAssetRecord converts AssetPullingInfo to types.AssetRecord

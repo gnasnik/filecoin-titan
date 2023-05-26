@@ -45,11 +45,13 @@ func (evt PullAssetFatalError) applyGlobal(state *AssetPullingInfo) bool {
 type AssetForceState struct {
 	State     AssetState
 	Requester string
+	Details   string
 }
 
 func (evt AssetForceState) applyGlobal(state *AssetPullingInfo) bool {
 	state.State = evt.State
 	state.Requester = evt.Requester
+	state.Details = evt.Details
 	return true
 }
 

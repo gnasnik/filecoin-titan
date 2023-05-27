@@ -188,21 +188,23 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 			return xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 		}
 
-		oldInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
-		if err != nil && err != sql.ErrNoRows {
-			return xerrors.Errorf("load node online duration %s err : %s", nodeID, err.Error())
-		}
-
 		publicKey, err := titanrsa.Pem2PublicKey([]byte(pStr))
 		if err != nil {
 			return xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 		}
 
-		// init node info
-		nodeInfo.OnlineDuration = oldInfo.OnlineDuration
-		nodeInfo.UploadTraffic = oldInfo.UploadTraffic
-		nodeInfo.DownloadTraffic = oldInfo.DownloadTraffic
-		nodeInfo.PortMapping = oldInfo.PortMapping
+		oldInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
+		if err != nil && err != sql.ErrNoRows {
+			return xerrors.Errorf("load node online duration %s err : %s", nodeID, err.Error())
+		}
+
+		if oldInfo != nil {
+			// init node info
+			nodeInfo.OnlineDuration = oldInfo.OnlineDuration
+			nodeInfo.UploadTraffic = oldInfo.UploadTraffic
+			nodeInfo.DownloadTraffic = oldInfo.DownloadTraffic
+			nodeInfo.PortMapping = oldInfo.PortMapping
+		}
 		nodeInfo.ExternalIP, _, err = net.SplitHostPort(remoteAddr)
 		if err != nil {
 			return xerrors.Errorf("SplitHostPort err:%s", err.Error())

@@ -17,7 +17,6 @@ type NodePulledResult struct {
 	BlocksCount int64
 	Size        int64
 	NodeID      string
-	IsCandidate bool
 }
 
 // AssetPullingInfo represents asset pull information

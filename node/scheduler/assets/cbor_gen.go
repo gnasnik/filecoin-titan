@@ -816,7 +816,7 @@ func (t *NodePulledResult) MarshalCBOR(w io.Writer) error {
 
 	cw := cbg.NewCborWriter(w)
 
-	if _, err := cw.Write([]byte{165}); err != nil {
+	if _, err := cw.Write([]byte{164}); err != nil {
 		return err
 	}
 
@@ -907,22 +907,6 @@ func (t *NodePulledResult) MarshalCBOR(w io.Writer) error {
 		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.BlocksCount-1)); err != nil {
 			return err
 		}
-	}
-
-	// t.IsCandidate (bool) (bool)
-	if len("IsCandidate") > cbg.MaxLength {
-		return xerrors.Errorf("Value in field \"IsCandidate\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("IsCandidate"))); err != nil {
-		return err
-	}
-	if _, err := io.WriteString(w, string("IsCandidate")); err != nil {
-		return err
-	}
-
-	if err := cbg.WriteBool(w, t.IsCandidate); err != nil {
-		return err
 	}
 	return nil
 }
@@ -1053,24 +1037,6 @@ func (t *NodePulledResult) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.BlocksCount = int64(extraI)
-			}
-			// t.IsCandidate (bool) (bool)
-		case "IsCandidate":
-
-			maj, extra, err = cr.ReadHeader()
-			if err != nil {
-				return err
-			}
-			if maj != cbg.MajOther {
-				return fmt.Errorf("booleans must be major type 7")
-			}
-			switch extra {
-			case 20:
-				t.IsCandidate = false
-			case 21:
-				t.IsCandidate = true
-			default:
-				return fmt.Errorf("booleans are either major type 7, value 20 or 21 (got %d)", extra)
 			}
 
 		default:

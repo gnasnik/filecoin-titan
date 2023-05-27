@@ -332,12 +332,10 @@ func (m *Manager) RemoveAsset(cid, hash, userID string) error {
 
 // updateAssetPullResults updates asset pull results
 func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult) {
-	isCandidate := false
 	pullingCount := 0
 
 	nodeInfo := m.nodeMgr.GetNode(nodeID)
 	if nodeInfo != nil {
-		isCandidate = nodeInfo.Type == types.NodeCandidate
 		// update node info
 		nodeInfo.DiskUsage = result.DiskUsage
 		defer nodeInfo.SetCurPullingCount(pullingCount)
@@ -405,7 +403,6 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 				Status:      int64(progress.Status),
 				BlocksCount: int64(progress.BlocksCount),
 				Size:        progress.Size,
-				IsCandidate: isCandidate,
 			},
 			Msg: "result",
 		})

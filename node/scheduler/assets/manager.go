@@ -321,6 +321,28 @@ func (m *Manager) RestartPullAssets(hashes []types.AssetHash) error {
 	return nil
 }
 
+// RemoveReplica remove a replica for node
+func (m *Manager) RemoveReplica(cid, hash, nodeID, userID string) error {
+	if exist, _ := m.assetStateMachines.Has(AssetHash(hash)); !exist {
+		return xerrors.Errorf("not found asset %s", hash)
+	}
+
+	err := m.DeleteAssetReplica(hash, nodeID, &types.AssetEventInfo{Hash: hash, Event: Remove.String(), Requester: userID, Details: nodeID})
+	if err != nil {
+		return xerrors.Errorf("RemoveReplica %s DeleteAssetReplica err: %s", hash, err.Error())
+	}
+
+	// asset view
+	err = m.removeAssetFromView(nodeID, cid)
+	if err != nil {
+		return xerrors.Errorf("RemoveReplica %s removeAssetFromView err: %s", hash, err.Error())
+	}
+
+	go m.requestAssetDelete(nodeID, cid)
+
+	return nil
+}
+
 // RemoveAsset removes an asset
 func (m *Manager) RemoveAsset(cid, hash, userID string) error {
 	if exist, _ := m.assetStateMachines.Has(AssetHash(hash)); !exist {

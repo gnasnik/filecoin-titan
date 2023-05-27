@@ -199,11 +199,11 @@ func (n *SQLDB) SaveNodeInfo(info *types.NodeInfo) error {
 	return err
 }
 
-// UpdateNodeInfos update node online time , last time , download traffic , upload traffic
-func (n *SQLDB) UpdateNodeInfos(nodeID string, onlineTime int, uploadTraffic, downloadTraffic int64) error {
-	query := fmt.Sprintf(`UPDATE %s SET last_seen=NOW(),online_duration=?,upload_traffic=?,download_traffic=? WHERE node_id=?`, nodeInfoTable)
+// UpdateNodeInfos update node online time , last time , download traffic , upload traffic , disk usage
+func (n *SQLDB) UpdateNodeInfos(nodeID string, onlineTime int, uploadTraffic, downloadTraffic int64, diskUsage float64) error {
+	query := fmt.Sprintf(`UPDATE %s SET last_seen=NOW(),online_duration=?,upload_traffic=?,download_traffic=?,disk_usage=? WHERE node_id=?`, nodeInfoTable)
 	// update
-	_, err := n.db.Exec(query, onlineTime, uploadTraffic, downloadTraffic, nodeID)
+	_, err := n.db.Exec(query, onlineTime, uploadTraffic, downloadTraffic, diskUsage, nodeID)
 	return err
 }
 

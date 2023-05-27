@@ -20,7 +20,6 @@ type NodeInfo struct {
 	Type         NodeType  `json:"type"`
 	ExternalIP   string    `json:"external_ip" form:"externalIp" gorm:"column:external_ip;comment:;"`
 	InternalIP   string    `json:"internal_ip" form:"internalIp" gorm:"column:internal_ip;comment:;"`
-	IPLocation   string    `json:"ip_location" form:"ipLocation" gorm:"column:ip_location;comment:;"`
 	PkgLossRatio float64   `json:"pkg_loss_ratio" form:"pkgLossRatio" gorm:"column:pkg_loss_ratio;comment:;"`
 	Latency      float64   `json:"latency" form:"latency" gorm:"column:latency;comment:;"`
 	CPUUsage     float64   `json:"cpu_usage" form:"cpuUsage" gorm:"column:cpu_usage;comment:;"`
@@ -37,8 +36,6 @@ type NodeInfo struct {
 	SystemVersion   string          `json:"system_version" form:"systemVersion" gorm:"column:system_version;comment:;" db:"system_version"`
 	DiskType        string          `json:"disk_type" form:"diskType" gorm:"column:disk_type;comment:;" db:"disk_type"`
 	IoSystem        string          `json:"io_system" form:"ioSystem" gorm:"column:io_system;comment:;" db:"io_system"`
-	Latitude        float64         `json:"latitude" db:"latitude"`
-	Longitude       float64         `json:"longitude" db:"longitude"`
 	NodeName        string          `json:"node_name" form:"nodeName" gorm:"column:node_name;comment:;" db:"node_name"`
 	Memory          float64         `json:"memory" form:"memory" gorm:"column:memory;comment:;" db:"memory"`
 	CPUCores        int             `json:"cpu_cores" form:"cpuCores" gorm:"column:cpu_cores;comment:;" db:"cpu_cores"`
@@ -52,6 +49,10 @@ type NodeInfo struct {
 	PortMapping     string          `db:"port_mapping"`
 	LastSeen        time.Time       `db:"last_seen"`
 	SchedulerID     dtypes.ServerID `db:"scheduler_sid"`
+
+	IPLocation string  `json:"ip_location" form:"ipLocation" gorm:"column:ip_location;comment:;"`
+	Latitude   float64 `json:"latitude" db:"latitude"`
+	Longitude  float64 `json:"longitude" db:"longitude"`
 }
 
 // NodeType node type

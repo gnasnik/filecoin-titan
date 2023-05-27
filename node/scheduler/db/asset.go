@@ -211,6 +211,37 @@ func (n *SQLDB) DeleteAssetRecord(hash string, serverID dtypes.ServerID, state s
 	return tx.Commit()
 }
 
+// DeleteAssetReplica remove a replica associated with a given asset hash from the database.
+func (n *SQLDB) DeleteAssetReplica(hash, nodeID string, info *types.AssetEventInfo) error {
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = tx.Rollback()
+		if err != nil && err != sql.ErrTxDone {
+			log.Errorf("DeleteAssetReplica Rollback err:%s", err.Error())
+		}
+	}()
+
+	query := fmt.Sprintf(`DELETE FROM %s WHERE hash=? AND node_id=?`, replicaInfoTable)
+	_, err = tx.Exec(query, hash, nodeID)
+	if err != nil {
+		return err
+	}
+
+	// asset event
+	eQuery := fmt.Sprintf(`INSERT INTO %s (hash, event, requester, details)
+		VALUES (?, ?, ?, ?)`, assetEventTable)
+	_, err = tx.Exec(eQuery, info.Hash, info.Event, info.Requester, info.Details)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
 // DeleteUnfinishedReplicas deletes the incomplete replicas with the given hash from the database.
 func (n *SQLDB) DeleteUnfinishedReplicas(hash string) error {
 	query := fmt.Sprintf(`DELETE FROM %s WHERE hash=? AND status!=?`, replicaInfoTable)

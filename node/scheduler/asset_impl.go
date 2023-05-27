@@ -1,7 +1,10 @@
 package scheduler
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
+	"fmt"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -135,4 +138,27 @@ func (s *Scheduler) PullAsset(ctx context.Context, info *types.PullAssetReq) err
 // GetAssetEvents get asset events information
 func (s *Scheduler) GetAssetEvents(ctx context.Context, startTime, endTime time.Time, limit, offset int) (*types.ListAssetEventRsp, error) {
 	return s.db.LoadAssetEventInfos(startTime, endTime, limit, offset)
+}
+
+// GetAssetListForBucket retrieves a list of asset hashes for the specified node's bucket.
+func (s *Scheduler) GetAssetListForBucket(ctx context.Context, bucketID uint32) ([]string, error) {
+	nodeID := handler.GetNodeID(ctx)
+	id := fmt.Sprintf("%s:%d", nodeID, bucketID)
+	hashBytes, err := s.NodeManager.LoadBucket(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(hashBytes) == 0 {
+		return make([]string, 0), nil
+	}
+
+	buffer := bytes.NewBuffer(hashBytes)
+	dec := gob.NewDecoder(buffer)
+
+	out := make([]string, 0)
+	if err = dec.Decode(&out); err != nil {
+		return nil, err
+	}
+	return out, nil
 }

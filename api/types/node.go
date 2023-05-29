@@ -343,3 +343,10 @@ type ConnectOptions struct {
 	Token         string
 	TcpServerPort int
 }
+
+type GeneratedCarInfo struct {
+	DataCid   string
+	PieceCid  string
+	PieceSize uint64
+	Path      string
+}

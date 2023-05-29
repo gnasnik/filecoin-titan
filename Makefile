@@ -107,3 +107,13 @@ scheduler-image:
 locator-image:
 	docker build -t locator:latest -f ./cmd/titan-locator/Dockerfile .
 .PHONY: locator-image
+
+
+install-tools:
+	sudo wget -c https://github.com/ethereum/solidity/releases/download/v0.8.20/solc-static-linux -O  /usr/local/bin/solc
+	sudo chmod +x /usr/local/bin/solc
+.PHONY: install-tools
+
+build-smart-contracts:
+	solc --bin --abi --optimize --overwrite -o ./contracts/build/ ./contracts/*.sol
+.PHONY: build-smart-contracts

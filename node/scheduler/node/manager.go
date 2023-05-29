@@ -383,3 +383,7 @@ func (m *Manager) redistributeNodeSelectWeights() {
 		return true
 	})
 }
+
+func generateCar(path string) error {
+	return nil
+}

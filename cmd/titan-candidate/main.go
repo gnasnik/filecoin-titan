@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"github.com/Filecoin-Titan/titan/node/container"
 	"math/big"
 	"net"
 	"net/http"
@@ -223,6 +224,51 @@ var daemonStartCmd = &cli.Command{
 
 		candidateCfg := cfg.(*config.CandidateCfg)
 
+		nodeIDBuf, err := r.NodeID()
+		if err != nil {
+			return err
+		}
+		nodeID := string(nodeIDBuf)
+
+		var tlsConfig *tls.Config
+		tlsConfig, domainSuffix := fetchTlsConfig(candidateCfg.AcmeUrl)
+		if domainSuffix != "" {
+			nodeVal := nodeID[2:]
+			_, port, _ := net.SplitHostPort(candidateCfg.Network.ListenAddress)
+			candidateCfg.ExternalURL = fmt.Sprintf("%s:%s", "https://"+strings.Replace(domainSuffix, "*", nodeVal, 1), port)
+		}
+		if err := flushConfig(lr, tlsConfig, candidateCfg); err != nil {
+			return xerrors.Errorf("flush tls config error: %w", err)
+		}
+		if domainSuffix != "" {
+			nodeVal := nodeID[2:]
+			_, port, _ := net.SplitHostPort(candidateCfg.Network.ListenAddress)
+			hostname := strings.Replace(domainSuffix, "*", nodeVal, 1)
+			candidateCfg.ExternalURL = fmt.Sprintf("%s:%s", "https://"+hostname, port)
+			if candidateCfg.IngressHostName == "" {
+				candidateCfg.IngressHostName = hostname
+				candidateCfg.IngressCertificatePath = lr.GetCertificatePath()
+				candidateCfg.IngressCertificateKeyPath = lr.GetCertificateKeyPath()
+			}
+
+			if err = lr.SetConfig(func(raw interface{}) {
+				scfg, ok := raw.(*config.CandidateCfg)
+				if !ok {
+					return
+				}
+				scfg.ExternalURL = candidateCfg.ExternalURL
+				scfg.IngressHostName = candidateCfg.IngressHostName
+				scfg.IngressCertificatePath = candidateCfg.IngressCertificatePath
+				scfg.IngressCertificateKeyPath = candidateCfg.IngressCertificateKeyPath
+			}); err != nil {
+				return err
+			}
+
+		}
+		if err := flushConfig(lr, tlsConfig, candidateCfg); err != nil {
+			return xerrors.Errorf("flush tls config error: %w", err)
+		}
+
 		err = lr.Close()
 		if err != nil {
 			return err
@@ -238,12 +284,6 @@ var daemonStartCmd = &cli.Command{
 			return fmt.Errorf(`please config node id and area id, example:
 			titan-candidate config set --node-id=your_node_id --area-id=your_area_id`)
 		}
-
-		nodeIDBuf, err := r.NodeID()
-		if err != nil {
-			return err
-		}
-		nodeID := string(nodeIDBuf)
 
 		connectTimeout, err := time.ParseDuration(candidateCfg.Network.Timeout)
 		if err != nil {
@@ -334,7 +374,7 @@ var daemonStartCmd = &cli.Command{
 
 				return dtypes.InternalIP(strings.Split(localAddr.IP.String(), ":")[0]), nil
 			}),
-			node.Override(node.RunGateway, func(assetMgr *asset.Manager, validation *validation.Validation, apiSecret *jwt.HMACSHA, limiter *types.RateLimiter) error {
+			node.Override(node.RunGateway, func(assetMgr *asset.Manager, validation *validation.Validation, apiSecret *jwt.HMACSHA, limiter *types.RateLimiter, client *container.Client) error {
 				opts := &httpserver.HttpServerOptions{
 					Asset: assetMgr, Scheduler: schedulerAPI,
 					PrivateKey:          privateKey,
@@ -343,6 +383,7 @@ var daemonStartCmd = &cli.Command{
 					MaxSizeOfUploadFile: candidateCfg.MaxSizeOfUploadFile,
 					WebRedirect:         candidateCfg.WebRedirect,
 					RateLimiter:         limiter,
+					Client:              client,
 				}
 				httpServer = httpserver.NewHttpServer(opts)
 				return nil
@@ -362,16 +403,6 @@ var daemonStartCmd = &cli.Command{
 		// if err != nil {
 		// 	return xerrors.Errorf("get tls config error: %w", err)
 		// }
-
-		tlsConfig, domainSuffix := fetchTlsConfig(candidateCfg.AcmeUrl)
-		if domainSuffix != "" {
-			nodeVal := nodeID[2:]
-			_, port, _ := net.SplitHostPort(candidateCfg.Network.ListenAddress)
-			candidateCfg.ExternalURL = fmt.Sprintf("%s:%s", "https://"+strings.Replace(domainSuffix, "*", nodeVal, 1), port)
-		}
-		if err := flushConfig(lr, tlsConfig, candidateCfg); err != nil {
-			return xerrors.Errorf("flush tls config error: %w", err)
-		}
 
 		handler := CandidateHandler(candidateAPI.AuthVerify, candidateAPI, true)
 		handler = httpServer.NewHandler(handler)
@@ -725,7 +756,7 @@ func fetchTlsConfig(acmeAddress string) (cfg *tls.Config, domainSuffix string) {
 	}
 
 	if len(cert.Certificate) == 0 {
-		log.Error("no certificate found in the provided tls.Certificate")
+		log.Error("no certificate found in the provided tls.CertificatePath")
 		return nil, ""
 	}
 
@@ -766,5 +797,22 @@ func mergeLocalTlsConfig(tlsConfig *tls.Config) error {
 
 func flushConfig(lr repo.LockedRepo, tlsConfig *tls.Config, cfg *config.CandidateCfg) error {
 	// TODO flush cert/key pair to external to disk config
+
+	// Check if there are any certificates
+	if len(tlsConfig.Certificates) > 0 {
+		cert := tlsConfig.Certificates[0]
+
+		certBytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Certificate[0]})
+
+		privBytes, err := x509.MarshalPKCS8PrivateKey(cert.PrivateKey)
+		if err != nil {
+			return err
+		}
+
+		certKeyBytes := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
+
+		return lr.SetCertificate(certBytes, certKeyBytes)
+	}
+
 	return nil
 }

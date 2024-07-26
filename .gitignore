@@ -10,3 +10,7 @@
 *.so
 *.dll
 *.dylib
+titan-edge
+titan-candidate
+titan-scheduler
+titan-locator

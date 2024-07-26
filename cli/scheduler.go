@@ -21,6 +21,8 @@ var SchedulerCMDs = []*cli.Command{
 	WithCategory("user", userCmds),
 	WithCategory("project", projectCmds),
 	WithCategory("codes", codesCmds),
+	WithCategory("provider", providerCmds),
+	WithCategory("deployment", deploymentCmds),
 	startElectionCmd,
 	// other
 	edgeUpdaterCmd,

@@ -261,6 +261,7 @@ type Scheduler interface {
 	NodeAPI
 	UserAPI
 	ProjectAPI
+	ContainerAPI
 
 	// NodeValidationResult processes the validation result for a node
 	NodeValidationResult(ctx context.Context, r io.Reader, sign string) error //perm:edge,candidate

@@ -56,6 +56,12 @@ const (
 	projectInfoTable     = "project_info"
 	projectReplicasTable = "project_replicas"
 
+	deploymentTable = "deployments"
+	providersTable  = "providers"
+	propertiesTable = "properties"
+	servicesTable   = "services"
+	domainsTable    = "domains"
+
 	// Default limits for loading table entries.
 	loadNodeInfosDefaultLimit           = 1000
 	loadValidationResultsDefaultLimit   = 100
@@ -120,6 +126,11 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 	tx.MustExec(fmt.Sprintf(cProjectReplicasTable, projectReplicasTable))
 	tx.MustExec(fmt.Sprintf(cProjectEventTable, projectEventTable))
 	tx.MustExec(fmt.Sprintf(cOnlineCountTable, onlineCountTable))
+	tx.MustExec(fmt.Sprintf(cDeploymentTable, deploymentTable))
+	tx.MustExec(fmt.Sprintf(cProviderTable, providersTable))
+	tx.MustExec(fmt.Sprintf(cPropertiesTable, propertiesTable))
+	tx.MustExec(fmt.Sprintf(cServicesTable, servicesTable))
+	tx.MustExec(fmt.Sprintf(cDomainTable, domainsTable))
 
 	return tx.Commit()
 }

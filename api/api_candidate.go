@@ -13,6 +13,8 @@ type Candidate interface {
 	Validation
 	DataSync
 	Asset
+	ProviderAPI
+
 	WaitQuiet(ctx context.Context) error                                                                             //perm:admin
 	GetBlocksWithAssetCID(ctx context.Context, assetCID string, randomSeed int64, randomCount int) ([]string, error) //perm:admin
 	// GetExternalAddress retrieves the external address of the caller.

@@ -3,6 +3,7 @@ package candidate
 import (
 	"context"
 	"fmt"
+	"github.com/Filecoin-Titan/titan/node/container"
 	"net"
 	"net/http"
 	"net/url"
@@ -44,6 +45,7 @@ type Candidate struct {
 	*device.Device
 	*vd.Validation
 	*datasync.DataSync
+	*container.Client
 	Scheduler api.Scheduler
 	Config    *config.CandidateCfg
 	TCPSrv    *TCPServer

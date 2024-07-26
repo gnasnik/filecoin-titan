@@ -9,6 +9,7 @@ import (
 	"encoding/gob"
 	"encoding/hex"
 	"fmt"
+	"github.com/Filecoin-Titan/titan/node/scheduler/container"
 	"io"
 	"net"
 	"net/http"
@@ -75,6 +76,7 @@ type Scheduler struct {
 	GetSchedulerConfigFunc dtypes.GetSchedulerConfigFunc
 	WorkloadManager        *workload.Manager
 	ProjectManager         *projects.Manager
+	ContainerManager       *container.Manager
 
 	PrivateKey *rsa.PrivateKey
 	Transport  *quic.Transport
@@ -139,6 +141,22 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 	if nodeID != nInfo.NodeID {
 		return xerrors.Errorf("nodeID mismatch %s, %s", nodeID, nInfo.NodeID)
+	}
+
+	// for container
+	{
+		if nodeType == types.NodeCandidate {
+			err = s.ContainerManager.AddNewProvider(ctx, &types.Provider{
+				ID:         nodeID,
+				IP:         externalIP,
+				RemoteAddr: opts.ExternalURL,
+				State:      types.ProviderStateOnline,
+				CreatedAt:  time.Now(),
+			})
+			if err != nil {
+				return xerrors.Errorf("add new container provider: %s %v", nodeID, err)
+			}
+		}
 	}
 
 	nodeInfo, err := s.checkNodeParameters(nInfo, nodeType)

@@ -153,6 +153,13 @@ func (h *dnsHandler) HandlerQuery(m *dns.Msg, remoteAddr string) {
 			} else if ok {
 				return
 			}
+
+			if ok, err := h.ReserveDeploymentHostnames(m, domain); err != nil {
+				log.Infof("ReserveDeploymentHostnames %s", err.Error())
+				return
+			} else if ok {
+				return
+			}
 		}
 	}
 }
@@ -285,4 +292,19 @@ func (h *dnsHandler) isMatchNodeID(id string) bool {
 func (h *dnsHandler) isValidCID(cidString string) bool {
 	_, err := cid.Decode(cidString)
 	return err == nil
+}
+
+func (h *dnsHandler) ReserveDeploymentHostnames(m *dns.Msg, domain string) (bool, error) {
+	fields := strings.Split(domain, ".")
+	if len(fields) < 4 {
+		return false, fmt.Errorf("invalid domain %s", domain)
+	}
+
+	// check if it is deployment id
+	deploymentId := fields[0]
+	if !h.isValidCID(deploymentId) {
+		return false, nil
+	}
+
+	return h.handlerNodeLocation(m, strings.Join(fields[1:], "."))
 }

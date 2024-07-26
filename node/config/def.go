@@ -131,6 +131,10 @@ func DefaultCandidateCfg() *CandidateCfg {
 		WebRedirect:  "https://storage.titannet.io/#/redirect",
 		AcmeUrl:      "https://api-test1.container1.titannet.io/api/v2/acme",
 		IsPrivate:    false,
+		ProviderConfig: ProviderConfig{
+			KubeConfigPath:   "/etc/rancher/k3s/k3s.yaml",
+			IngressClassName: "nginx",
+		},
 	}
 }
 
